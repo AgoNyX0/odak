@@ -3,3 +3,17 @@
 @media(max-width:1050px){.shell{grid-template-columns:82px 1fr}.sidebar{padding:24px 14px}.brand>span:last-child,.nav-item:not(.active){font-size:0}.nav-item{justify-content:center;padding:13px}.nav-item span{font-size:1rem}.side-quote{display:none}.hero-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(3,1fr)}.bottom-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.shell{display:block}.sidebar{position:fixed;z-index:5;top:auto;bottom:0;width:100%;height:70px;flex-direction:row;padding:8px 14px;align-items:center;border-right:0;border-top:1px solid var(--line)}.brand,.side-quote{display:none}.sidebar nav{margin:0;display:flex;width:100%;justify-content:space-around}.nav-item,.nav-item:not(.active){display:grid;gap:0;justify-items:center;font-size:.65rem;padding:7px 12px}.nav-item span{font-size:1rem}.nav-item.active{box-shadow:none}main{padding:22px 16px 100px}.topbar{align-items:flex-start}.topbar h1{font-size:1.45rem;max-width:260px}.streak{padding:7px 10px}.streak div{display:none}.hero-grid{display:block}.timer-card,.today-card,.panel{border-radius:18px;padding:20px}.today-card{margin-top:16px;min-height:auto}.timer-head{display:block}.timer-head select{margin-top:12px}.timer-wrap{width:225px}.stats-grid{grid-template-columns:1fr;margin:16px 0}.stat-card{min-height:96px}.bottom-grid{display:block}.sessions-panel{margin-top:16px}.delete-task{opacity:1}.form-row{grid-template-columns:1fr 76px}.form-row button{grid-column:1/-1;padding:9px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+/* Menü ekranları */
+body[data-view="plan"] .timer-card,
+body[data-view="plan"] .stats-grid,
+body[data-view="plan"] .bottom-grid{display:none}
+body[data-view="plan"] .hero-grid{grid-template-columns:minmax(0,860px);justify-content:center}
+body[data-view="plan"] .today-card{min-height:560px;animation:viewIn .28s ease-out}
+body[data-view="plan"] .task-list{max-height:430px}
+body[data-view="progress"] .hero-grid{display:none}
+body[data-view="progress"] .stats-grid{margin-top:0;animation:viewIn .28s ease-out}
+body[data-view="progress"] .bottom-grid{animation:viewIn .34s ease-out}
+body[data-view="today"] .hero-grid{animation:viewIn .25s ease-out}
+@keyframes viewIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:700px){body[data-view="plan"] .today-card{margin-top:0;min-height:calc(100vh - 190px)}body[data-view="progress"] .stats-grid{margin-top:0}}

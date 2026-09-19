@@ -85,6 +85,26 @@ document.querySelectorAll('.mode').forEach(btn=>btn.onclick=()=>{stopTimer();doc
 const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');
 render();updateTimer();
 
+const viewTitles={
+  today:'Merhaba, çalışmaya hazır mısın?',
+  plan:'Bugünün çalışma planı',
+  progress:'İlerlemen birikiyor'
+};
+function setView(view,shouldScroll=false){
+  if(!viewTitles[view])view='today';
+  document.body.dataset.view=view;
+  $('#pageTitle').textContent=viewTitles[view];
+  document.querySelectorAll('[data-view-link]').forEach(link=>{
+    const active=link.dataset.viewLink===view;
+    link.classList.toggle('active',active);
+    if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');
+  });
+  if(shouldScroll)window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('[data-view-link]').forEach(link=>link.addEventListener('click',()=>setView(link.dataset.viewLink,true)));
+window.addEventListener('hashchange',()=>setView(location.hash.slice(1),true));
+setView(location.hash.slice(1)||'today');
+
 function registerStudyTools(){
   const context=document.modelContext;
   if(!context?.registerTool)return;

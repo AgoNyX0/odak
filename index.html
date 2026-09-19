@@ -20,9 +20,9 @@
         <span>odak</span>
       </a>
       <nav>
-        <a class="nav-item active" href="#today"><span aria-hidden="true">⌂</span> Bugün</a>
-        <a class="nav-item" href="#plan"><span aria-hidden="true">✓</span> Planım</a>
-        <a class="nav-item" href="#progress"><span aria-hidden="true">↗</span> İlerleme</a>
+        <a class="nav-item active" href="#today" data-view-link="today"><span aria-hidden="true">⌂</span> Bugün</a>
+        <a class="nav-item" href="#plan" data-view-link="plan"><span aria-hidden="true">✓</span> Planım</a>
+        <a class="nav-item" href="#progress" data-view-link="progress"><span aria-hidden="true">↗</span> İlerleme</a>
       </nav>
       <div class="side-quote">
         <span class="quote-icon">✦</span>
@@ -35,12 +35,12 @@
       <header class="topbar">
         <div>
           <p class="eyebrow" id="fullDate">BUGÜN</p>
-          <h1>Merhaba, çalışmaya hazır mısın?</h1>
+          <h1 id="pageTitle">Merhaba, çalışmaya hazır mısın?</h1>
         </div>
         <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">4 gün</strong><small>çalışma serisi</small></div></div>
       </header>
 
-      <section class="hero-grid" id="today">
+      <section class="hero-grid view-section" id="today" data-section="today">
         <article class="timer-card">
           <div class="timer-head">
             <div><p class="section-kicker">ODAK SAYACI</p><h2>Şimdi neye odaklanıyorsun?</h2></div>
@@ -66,7 +66,7 @@
           <p class="timer-hint">Telefonunu sessize al. Bu süre sadece senin ve hedefinin.</p>
         </article>
 
-        <article class="today-card" id="plan">
+        <article class="today-card" id="plan" data-section="plan">
           <div class="card-title-row"><div><p class="section-kicker">GÜNLÜK PLAN</p><h2>Bugünün hedefleri</h2></div><button class="add-btn" id="openTaskForm">＋ Ekle</button></div>
           <div class="plan-progress"><div class="progress-copy"><span id="planSummary">0 / 0 tamamlandı</span><strong id="planPercent">0%</strong></div><div class="progress-track"><i id="planBar"></i></div></div>
           <form class="task-form hidden" id="taskForm">
@@ -78,7 +78,7 @@
         </article>
       </section>
 
-      <section class="stats-grid" id="progress">
+      <section class="stats-grid view-section" id="progress" data-section="progress">
         <article class="stat-card accent-stat">
           <span class="stat-icon">◷</span><div><p>Bugün çalıştın</p><strong id="todayMinutes">0 dk</strong><small id="todayTarget">120 dk hedefin var</small></div>
           <div class="mini-ring" id="targetRing"><span id="targetPercent">0%</span></div>
@@ -87,7 +87,7 @@
         <article class="stat-card"><span class="stat-icon orange">✓</span><div><p>Tamamlanan hedef</p><strong id="doneCount">0 görev</strong><small id="doneDetail">Planının %0'i</small></div></article>
       </section>
 
-      <section class="bottom-grid">
+      <section class="bottom-grid view-section" data-section="progress">
         <article class="panel weekly-panel">
           <div class="card-title-row"><div><p class="section-kicker">HAFTALIK RİTİM</p><h2>Bu haftaki ilerlemen</h2></div><div class="week-total"><strong id="weekTotal">0 sa</strong><span>toplam</span></div></div>
           <div class="chart" id="weekChart" aria-label="Haftalık çalışma grafiği"></div>
