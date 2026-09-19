@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#11172a" />
+  <meta name="description" content="Günlük çalışma planı, odak sayacı ve ilerleme takibi için kişisel ders çalışma paneli." />
+  <title>Odak — Ders Çalışma Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Ana menü">
+      <a class="brand" href="#top" aria-label="Odak ana sayfa">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 7h11a7 7 0 0 1 7 7v11H14a7 7 0 0 1-7-7V7Z"/><path d="M12 13h8M12 18h6"/></svg></span>
+        <span>odak</span>
+      </a>
+      <nav>
+        <a class="nav-item active" href="#today"><span aria-hidden="true">⌂</span> Bugün</a>
+        <a class="nav-item" href="#plan"><span aria-hidden="true">✓</span> Planım</a>
+        <a class="nav-item" href="#progress"><span aria-hidden="true">↗</span> İlerleme</a>
+      </nav>
+      <div class="side-quote">
+        <span class="quote-icon">✦</span>
+        <p>Başlamak için hazır olmayı bekleme.</p>
+        <small>Bugünün hatırlatıcısı</small>
+      </div>
+    </aside>
+
+    <main id="top">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="fullDate">BUGÜN</p>
+          <h1>Merhaba, çalışmaya hazır mısın?</h1>
+        </div>
+        <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">4 gün</strong><small>çalışma serisi</small></div></div>
+      </header>
+
+      <section class="hero-grid" id="today">
+        <article class="timer-card">
+          <div class="timer-head">
+            <div><p class="section-kicker">ODAK SAYACI</p><h2>Şimdi neye odaklanıyorsun?</h2></div>
+            <select id="timerSubject" aria-label="Sayaç için ders seç"></select>
+          </div>
+          <div class="mode-tabs" role="group" aria-label="Sayaç modu">
+            <button class="mode active" data-minutes="25">Odak <span>25 dk</span></button>
+            <button class="mode" data-minutes="5">Kısa mola <span>5 dk</span></button>
+            <button class="mode" data-minutes="15">Uzun mola <span>15 dk</span></button>
+          </div>
+          <div class="timer-wrap">
+            <svg class="timer-ring" viewBox="0 0 220 220" aria-hidden="true">
+              <circle class="ring-bg" cx="110" cy="110" r="94" />
+              <circle class="ring-progress" id="ringProgress" cx="110" cy="110" r="94" />
+            </svg>
+            <div class="timer-time"><strong id="timerText">25:00</strong><span id="timerState">ODAK ZAMANI</span></div>
+          </div>
+          <div class="timer-controls">
+            <button class="icon-btn" id="resetTimer" aria-label="Sayacı sıfırla">↺</button>
+            <button class="primary-btn" id="toggleTimer"><span id="playIcon">▶</span><span id="playLabel">Başlat</span></button>
+            <button class="icon-btn" id="skipTimer" aria-label="Sayacı tamamla">⇥</button>
+          </div>
+          <p class="timer-hint">Telefonunu sessize al. Bu süre sadece senin ve hedefinin.</p>
+        </article>
+
+        <article class="today-card" id="plan">
+          <div class="card-title-row"><div><p class="section-kicker">GÜNLÜK PLAN</p><h2>Bugünün hedefleri</h2></div><button class="add-btn" id="openTaskForm">＋ Ekle</button></div>
+          <div class="plan-progress"><div class="progress-copy"><span id="planSummary">0 / 0 tamamlandı</span><strong id="planPercent">0%</strong></div><div class="progress-track"><i id="planBar"></i></div></div>
+          <form class="task-form hidden" id="taskForm">
+            <input id="taskTitle" maxlength="80" placeholder="Örn. Trigonometri tekrar" aria-label="Görev adı" required />
+            <div class="form-row"><input id="taskSubject" maxlength="24" placeholder="Ders" aria-label="Ders" required /><input id="taskMinutes" type="number" min="5" max="240" step="5" value="30" aria-label="Dakika" required /><button type="submit">Ekle</button></div>
+          </form>
+          <div class="task-list" id="taskList" aria-live="polite"></div>
+          <div class="empty-state hidden" id="emptyTasks"><span>✦</span><p>Bugün için henüz hedef yok.</p><button id="emptyAdd">İlk hedefini ekle</button></div>
+        </article>
+      </section>
+
+      <section class="stats-grid" id="progress">
+        <article class="stat-card accent-stat">
+          <span class="stat-icon">◷</span><div><p>Bugün çalıştın</p><strong id="todayMinutes">0 dk</strong><small id="todayTarget">120 dk hedefin var</small></div>
+          <div class="mini-ring" id="targetRing"><span id="targetPercent">0%</span></div>
+        </article>
+        <article class="stat-card"><span class="stat-icon purple">◎</span><div><p>Tamamlanan odak</p><strong id="focusCount">0 oturum</strong><small>Bugünkü kayıt</small></div></article>
+        <article class="stat-card"><span class="stat-icon orange">✓</span><div><p>Tamamlanan hedef</p><strong id="doneCount">0 görev</strong><small id="doneDetail">Planının %0'i</small></div></article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="panel weekly-panel">
+          <div class="card-title-row"><div><p class="section-kicker">HAFTALIK RİTİM</p><h2>Bu haftaki ilerlemen</h2></div><div class="week-total"><strong id="weekTotal">0 sa</strong><span>toplam</span></div></div>
+          <div class="chart" id="weekChart" aria-label="Haftalık çalışma grafiği"></div>
+        </article>
+        <article class="panel sessions-panel">
+          <div class="card-title-row"><div><p class="section-kicker">BUGÜN</p><h2>Çalışma günlüğü</h2></div><span class="live-badge">● CANLI</span></div>
+          <div class="session-list" id="sessionList"></div>
+          <div class="empty-sessions" id="emptySessions">İlk odak oturumun burada görünecek.</div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
