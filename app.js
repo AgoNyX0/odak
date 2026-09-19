@@ -27,16 +27,24 @@ function escapeHTML(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&am
 function toast(message){const t=$('#toast');t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function formatMinutes(min){if(min<60)return `${min} dk`;const h=Math.floor(min/60),m=min%60;return m?`${h} sa ${m} dk`:`${h} sa`;}
 function dayLabel(date){return ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'][date.getDay()];}
+const LESSON_COLORS=['#6c7cff','#18b892','#f08b45','#d9568d','#8f72df','#3b9dd8'];
 
 function render(){
   const todays=state.tasks.filter(t=>t.date===todayKey());
   const done=todays.filter(t=>t.done).length;
   const pct=todays.length?Math.round(done/todays.length*100):0;
-  taskList.innerHTML=todays.map(t=>`<label class="task ${t.done?'done':''}"><input class="task-check" type="checkbox" data-id="${t.id}" ${t.done?'checked':''}><span class="task-copy"><strong>${escapeHTML(t.title)}</strong><span>${escapeHTML(t.subject)} · ${t.minutes} dk</span></span><button class="delete-task" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil">×</button></label>`).join('');
+  taskList.innerHTML='';
+  const groups=[...new Set(todays.map(t=>t.subject))].map((subject,index)=>({subject,color:LESSON_COLORS[index%LESSON_COLORS.length],tasks:todays.filter(t=>t.subject===subject)}));
+  $('#subjectGrid').innerHTML=groups.map((group,index)=>{const completed=group.tasks.filter(t=>t.done).length,pct=Math.round(completed/group.tasks.length*100),safe=`lesson-${index}`;return `<article class="subject-card" style="--lesson-color:${group.color}"><div class="subject-card-head"><h3>${escapeHTML(group.subject)}</h3><span>${completed}/${group.tasks.length} görev</span></div><div class="semi-gauge"><svg viewBox="0 0 120 66" role="img" aria-labelledby="${safe}-title ${safe}-desc"><title id="${safe}-title">${escapeHTML(group.subject)} ilerlemesi</title><desc id="${safe}-desc">${group.tasks.length} görevden ${completed} tanesi tamamlandı, yüzde ${pct}.</desc><path class="gauge-track" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60"/><path class="gauge-value" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60" style="--progress:${pct}"/></svg><strong aria-hidden="true">%${pct}</strong></div><div class="subject-tasks">${group.tasks.map(t=>`<div class="subject-task ${t.done?'done':''}"><input class="task-check" id="task-${t.id}" type="checkbox" data-id="${t.id}" ${t.done?'checked':''}><label for="task-${t.id}"><strong>${escapeHTML(t.title)}</strong><span>${t.minutes} dk</span></label><button class="delete-task" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil">×</button></div>`).join('')}</div><button class="subject-add" data-subject="${escapeHTML(group.subject)}">＋ Bu derse görev ekle</button></article>`;}).join('');
   $('#emptyTasks').classList.toggle('hidden',todays.length>0);
   $('#planSummary').textContent=`${done} / ${todays.length} tamamlandı`;
   $('#planPercent').textContent=`${pct}%`; $('#planBar').style.width=`${pct}%`;
   $('#doneCount').textContent=`${done} görev`; $('#doneDetail').textContent=`Planının %${pct}'i`;
+  const plannedMinutes=todays.reduce((a,t)=>a+t.minutes,0);
+  $('#todayOverviewSummary').textContent=`${todays.length} görev · ${formatMinutes(plannedMinutes)}`;
+  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).slice(0,4).map(t=>`<div class="preview-task"><i style="--lesson-color:${LESSON_COLORS[Math.max(0,groups.findIndex(g=>g.subject===t.subject))%LESSON_COLORS.length]}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(t.subject)} · ${t.minutes} dk</small></span></div>`).join('');
+  $('#emptyTodayPreview').textContent=todays.length?'Bugünün tüm görevleri tamamlandı.':'Bugün için görev yok. Planına küçük bir hedef ekle.';
+  $('#emptyTodayPreview').classList.toggle('hidden',todays.some(t=>!t.done));
 
   const subjects=[...new Set(todays.map(t=>t.subject))];
   const old=timerSubject.value;
@@ -46,6 +54,7 @@ function render(){
   const sessions=state.sessions.filter(s=>s.date===todayKey());
   const mins=sessions.reduce((a,s)=>a+s.minutes,0);
   $('#todayMinutes').textContent=formatMinutes(mins); $('#focusCount').textContent=`${sessions.length} oturum`;
+  $('#focusDaySummary').textContent=`${formatMinutes(mins)} · ${sessions.length} oturum`;
   const targetPct=Math.min(100,Math.round(mins/state.dailyTarget*100));
   $('#todayTarget').textContent=`${state.dailyTarget} dk hedefin var`;
   $('#targetPercent').textContent=`${targetPct}%`; $('#targetRing').style.background=`conic-gradient(var(--green) ${targetPct}%,#29314c 0)`;
@@ -65,10 +74,13 @@ function renderWeek(){
   const total=days.reduce((a,d)=>a+d.min,0); $('#weekTotal').textContent=formatMinutes(total);
 }
 
-taskList.addEventListener('change',e=>{if(e.target.matches('.task-check')){const t=state.tasks.find(x=>x.id===e.target.dataset.id);if(t){t.done=e.target.checked;toast(t.done?'Hedef tamamlandı!':'Hedef yeniden açıldı');render();}}});
-taskList.addEventListener('click',e=>{const id=e.target.dataset.delete;if(id){state.tasks=state.tasks.filter(t=>t.id!==id);render();}});
+function handleTaskChange(e){if(e.target.matches('.task-check')){const t=state.tasks.find(x=>x.id===e.target.dataset.id);if(t){t.done=e.target.checked;toast(t.done?'Hedef tamamlandı!':'Hedef yeniden açıldı');render();}}}
+function handleTaskClick(e){const id=e.target.dataset.delete;if(id){state.tasks=state.tasks.filter(t=>t.id!==id);render();return;}const subject=e.target.dataset.subject;if(subject){showForm();$('#taskSubject').value=subject;}}
+taskList.addEventListener('change',handleTaskChange);taskList.addEventListener('click',handleTaskClick);
+$('#subjectGrid').addEventListener('change',handleTaskChange);$('#subjectGrid').addEventListener('click',handleTaskClick);
 function showForm(){taskForm.classList.remove('hidden');$('#taskTitle').focus();}
 $('#openTaskForm').onclick=showForm; $('#emptyAdd').onclick=showForm;
+$('#todayAddTask').onclick=()=>{location.hash='plan';setTimeout(showForm,80);};
 taskForm.addEventListener('submit',e=>{e.preventDefault();state.tasks.push({id:uid(),title:$('#taskTitle').value.trim(),subject:$('#taskSubject').value.trim(),minutes:Number($('#taskMinutes').value),done:false,date:todayKey()});taskForm.reset();$('#taskMinutes').value=30;taskForm.classList.add('hidden');toast('Hedef plana eklendi');render();});
 
 function updateTimer(){
@@ -93,10 +105,11 @@ const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{
 $('#examDate').value=todayKey();
 
 const viewTitles={
-  today:'Merhaba, çalışmaya hazır mısın?',
-  plan:'Bugünün çalışma planı',
-  progress:'İlerlemen birikiyor',
-  exams:'Deneme gelişimin',
+  today:'Bugün',
+  plan:'Planım',
+  focus:'Odak Sayacı',
+  progress:'İlerleme',
+  exams:'Denemeler',
   settings:'Ayarlar'
 };
 let previousView='today';
