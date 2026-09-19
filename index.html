@@ -15,7 +15,7 @@
 <body>
   <div class="shell">
     <aside class="sidebar" aria-label="Ana menü">
-      <a class="brand" href="#top" aria-label="Odak ana sayfa">
+      <a class="brand" href="#settings" data-view-link="settings" aria-label="Ayarları aç">
         <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 7h11a7 7 0 0 1 7 7v11H14a7 7 0 0 1-7-7V7Z"/><path d="M12 13h8M12 18h6"/></svg></span>
         <span>odak</span>
       </a>
@@ -23,6 +23,7 @@
         <a class="nav-item active" href="#today" data-view-link="today"><span aria-hidden="true">⌂</span> Bugün</a>
         <a class="nav-item" href="#plan" data-view-link="plan"><span aria-hidden="true">✓</span> Planım</a>
         <a class="nav-item" href="#progress" data-view-link="progress"><span aria-hidden="true">↗</span> İlerleme</a>
+        <a class="nav-item sub-nav" href="#exams" data-view-link="exams"><span aria-hidden="true">⌁</span> Denemeler</a>
       </nav>
       <div class="side-quote">
         <span class="quote-icon">✦</span>
@@ -97,6 +98,83 @@
           <div class="session-list" id="sessionList"></div>
           <div class="empty-sessions" id="emptySessions">İlk odak oturumun burada görünecek.</div>
         </article>
+      </section>
+
+      <section class="exam-view view-section" id="exams" data-section="exams">
+        <div class="view-toolbar">
+          <div><p class="section-kicker">DENEME TAKİBİ</p><h2>Net gelişimin</h2><p class="view-description">Sonuçlarını kaydet, ilerlemeni net biçimde gör.</p></div>
+          <button class="primary-btn compact" id="openExamForm">＋ Deneme ekle</button>
+        </div>
+        <form class="exam-form panel hidden" id="examForm">
+          <div class="exam-form-head"><div><p class="section-kicker">YENİ KAYIT</p><h3>Deneme sonucu ekle</h3></div><button type="button" class="close-btn" id="closeExamForm" aria-label="Formu kapat">×</button></div>
+          <div class="exam-fields">
+            <label>Sınav türü<select id="examType" required><option>TYT</option><option>AYT</option><option>YDT</option></select></label>
+            <label>Deneme adı<input id="examName" maxlength="60" placeholder="Örn. Türkiye Geneli 3" required></label>
+            <label>Tarih<input id="examDate" type="date" required></label>
+            <label>Süre <span>(dk)</span><input id="examDuration" type="number" min="1" max="600" placeholder="165"></label>
+            <label>Doğru<input id="examCorrect" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Yanlış<input id="examWrong" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Boş<input id="examBlank" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Yayın puanı <span>(isteğe bağlı)</span><input id="examScore" type="number" min="0" max="600" step="0.01" placeholder="—"></label>
+          </div>
+          <div class="net-preview"><span>Hesaplanan net</span><strong id="netPreview">0,00</strong><small>Doğru − Yanlış / 4</small></div>
+          <p class="form-error hidden" id="examError" role="alert"></p>
+          <div class="form-actions"><button type="button" class="secondary-btn" id="cancelExam">Vazgeç</button><button type="submit" class="primary-btn compact">Denemeyi kaydet</button></div>
+        </form>
+        <div class="exam-stats stats-grid">
+          <article class="stat-card"><span class="stat-icon">↗</span><div><p>Son net</p><strong id="latestNet">—</strong><small id="latestExamName">Henüz kayıt yok</small></div></article>
+          <article class="stat-card"><span class="stat-icon purple">≈</span><div><p>Son 3 ortalama</p><strong id="averageNet">—</strong><small>Yakın dönem ritmi</small></div></article>
+          <article class="stat-card"><span class="stat-icon orange">★</span><div><p>En iyi net</p><strong id="bestNet">—</strong><small>Kişisel rekorun</small></div></article>
+          <article class="stat-card"><span class="stat-icon target-icon">◎</span><div><p>Hedefe fark</p><strong id="targetGap">—</strong><small><span id="examTargetLabel">90</span> net hedefine</small></div></article>
+        </div>
+        <div class="exam-grid">
+          <article class="panel exam-chart-panel">
+            <div class="card-title-row"><div><p class="section-kicker">NET GELİŞİMİ</p><h2>Son denemelerin</h2></div><div class="chart-tools"><select id="examFilter" aria-label="Grafikteki sınav türü"><option>TYT</option><option>AYT</option><option>YDT</option></select><label class="target-field">Hedef <input id="examTarget" type="number" min="1" max="200" step="1" value="90"> net</label></div></div>
+            <div class="exam-chart" id="examChart" aria-label="Deneme net gelişim grafiği"></div>
+            <p class="chart-insight" id="chartInsight">Gelişimi görmek için ilk denemeni ekle.</p>
+          </article>
+          <article class="panel exam-list-panel">
+            <div class="card-title-row"><div><p class="section-kicker">KAYITLAR</p><h2>Son denemeler</h2></div></div>
+            <div class="exam-list" id="examList"></div>
+            <div class="empty-sessions" id="emptyExams">Henüz deneme eklemedin.<br><button class="text-btn" id="emptyExamAdd">İlk denemeni ekle</button></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="settings-view view-section" id="settings" data-section="settings">
+        <div class="view-toolbar">
+          <div><p class="section-kicker">KİŞİSELLEŞTİR</p><h2>Ayarlar</h2><p class="view-description">Çalışma alanını kendi ritmine göre düzenle.</p></div>
+          <a class="close-view" href="#today" id="closeSettings" aria-label="Ayarları kapat">×</a>
+        </div>
+        <div class="settings-grid">
+          <article class="panel settings-card">
+            <div class="settings-icon">◐</div><div class="settings-copy"><h3>Görünüm</h3><p>Renkleri ve hareketleri sana uygun hâle getir.</p></div>
+            <div class="setting-control full"><span class="control-label">Tema</span><div class="segmented" id="themeChoices" role="radiogroup" aria-label="Tema"><button type="button" data-theme="dark">Koyu</button><button type="button" data-theme="light">Açık</button></div></div>
+            <div class="setting-control full"><span class="control-label">Vurgu rengi</span><div class="color-choices" id="accentChoices" role="radiogroup" aria-label="Vurgu rengi"><button type="button" data-accent="indigo" style="--swatch:#6c7cff" aria-label="İndigo">✓</button><button type="button" data-accent="green" style="--swatch:#18b892" aria-label="Yeşil">✓</button><button type="button" data-accent="orange" style="--swatch:#f08b45" aria-label="Turuncu">✓</button><button type="button" data-accent="pink" style="--swatch:#e7689a" aria-label="Pembe">✓</button></div></div>
+            <label class="switch-row"><span><strong>Hareketleri azalt</strong><small>Gereksiz geçişleri ve animasyonları kapatır.</small></span><input id="reduceMotion" type="checkbox" role="switch"></label>
+          </article>
+          <article class="panel settings-card">
+            <div class="settings-icon">◷</div><div class="settings-copy"><h3>Odak sayacı</h3><p>Süreleri ve günlük hedefini belirle.</p></div>
+            <div class="duration-grid">
+              <label>Odak <span>dk</span><input id="focusSetting" type="number" min="5" max="120"></label>
+              <label>Kısa mola <span>dk</span><input id="shortBreakSetting" type="number" min="1" max="30"></label>
+              <label>Uzun mola <span>dk</span><input id="longBreakSetting" type="number" min="5" max="60"></label>
+              <label>Günlük hedef <span>dk</span><input id="dailyTargetSetting" type="number" min="15" max="720" step="5"></label>
+            </div>
+            <p class="setting-note">Klasik başlangıç 25 dakikadır; çalışma ritmine göre değiştirebilirsin.</p>
+            <label class="switch-row"><span><strong>Tur bitiş sesi</strong><small>Oturum tamamlanınca kısa bir ses çalar.</small></span><input id="soundSetting" type="checkbox" role="switch"></label>
+            <button class="secondary-btn sound-test" id="testSound" type="button">Sesi dene</button>
+          </article>
+          <article class="panel settings-card data-card">
+            <div class="settings-icon">⇩</div><div class="settings-copy"><h3>Verilerin</h3><p>Kayıtlarını yedekle veya ilerlemeni sıfırla.</p></div>
+            <button class="secondary-btn full-action" id="exportData" type="button">Yedeği indir (.json)</button>
+            <div class="danger-zone">
+              <h4>İlerlemeyi sıfırla</h4><p>Görevler, çalışma geçmişi ve denemeler silinir. Tema ve sayaç ayarların korunur.</p>
+              <button class="danger-btn" id="showReset" type="button">İlerlemeyi sıfırla…</button>
+              <div class="reset-confirm hidden" id="resetConfirm"><label>Onaylamak için <strong>SIFIRLA</strong> yaz<input id="resetText" autocomplete="off"></label><div><button class="secondary-btn" id="cancelReset" type="button">Vazgeç</button><button class="danger-btn" id="confirmReset" type="button" disabled>Kalıcı olarak sil</button></div></div>
+            </div>
+          </article>
+        </div>
       </section>
     </main>
   </div>
