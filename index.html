@@ -15,14 +15,17 @@
 <body>
   <div class="shell">
     <aside class="sidebar" aria-label="Ana menü">
-      <a class="brand" href="#top" aria-label="Odak ana sayfa">
+      <a class="brand" href="#settings" data-view-link="settings" aria-label="Ayarları aç">
         <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 7h11a7 7 0 0 1 7 7v11H14a7 7 0 0 1-7-7V7Z"/><path d="M12 13h8M12 18h6"/></svg></span>
         <span>odak</span>
       </a>
       <nav>
-        <a class="nav-item active" href="#today"><span aria-hidden="true">⌂</span> Bugün</a>
-        <a class="nav-item" href="#plan"><span aria-hidden="true">✓</span> Planım</a>
-        <a class="nav-item" href="#progress"><span aria-hidden="true">↗</span> İlerleme</a>
+        <a class="nav-item active" href="#today" data-view-link="today"><span aria-hidden="true">⌂</span> Bugün</a>
+        <a class="nav-item" href="#plan" data-view-link="plan"><span aria-hidden="true">✓</span> Planım</a>
+        <a class="nav-item" href="#reviews" data-view-link="reviews"><span aria-hidden="true">↻</span> Tekrarlar</a>
+        <a class="nav-item" href="#focus" data-view-link="focus"><span aria-hidden="true">◷</span> Odak Sayacı</a>
+        <a class="nav-item" href="#progress" data-view-link="progress"><span aria-hidden="true">↗</span> İlerleme</a>
+        <a class="nav-item" href="#exams" data-view-link="exams"><span aria-hidden="true">⌁</span> Denemeler</a>
       </nav>
       <div class="side-quote">
         <span class="quote-icon">✦</span>
@@ -35,12 +38,40 @@
       <header class="topbar">
         <div>
           <p class="eyebrow" id="fullDate">BUGÜN</p>
-          <h1>Merhaba, çalışmaya hazır mısın?</h1>
+          <h1 id="pageTitle">Merhaba, çalışmaya hazır mısın?</h1>
         </div>
-        <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">4 gün</strong><small>çalışma serisi</small></div></div>
+        <div class="topbar-actions">
+          <button class="quick-add-btn" id="quickCapture" type="button" aria-label="Hızlı görev ekle">＋ <span>Hızlı ekle</span></button>
+          <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">4 gün</strong><small>çalışma serisi</small></div></div>
+        </div>
       </header>
 
-      <section class="hero-grid" id="today">
+      <section class="today-overview view-section" data-section="today">
+        <article class="today-hero panel">
+          <div><p class="section-kicker">BUGÜN</p><h2>Planın hazır.</h2><p id="todayOverviewSummary">0 görev · 0 dk</p></div>
+          <a class="primary-btn compact action-link" href="#focus">Odaklanmaya başla</a>
+        </article>
+        <div class="today-action-grid">
+          <article class="panel next-action-card">
+            <div class="action-icon" aria-hidden="true">→</div>
+            <div class="action-copy"><p class="section-kicker">SIRADAKİ EN İYİ ADIM</p><h2 id="todayNextTitle">Planından devam et</h2><p id="todayNextReason">Bugünkü ilk küçük hedefini seç.</p></div>
+            <button class="secondary-btn" id="acceptNextAction" type="button">Plana ekle</button>
+          </article>
+          <article class="panel due-review-card">
+            <div class="action-icon review-icon" aria-hidden="true">↻</div>
+            <div class="action-copy"><p class="section-kicker">BUGÜNKÜ TEKRAR</p><h2><span id="todayReviewCount">0</span> kısa tekrar</h2><p id="todayReviewText">Tekrar kuyruğun boş.</p></div>
+            <a class="secondary-btn action-link" href="#reviews">Tekrarlara git</a>
+          </article>
+        </div>
+        <article class="panel today-plan-preview">
+          <div class="card-title-row"><div><p class="section-kicker">SIRADAKİ</p><h2>Bugünün görevleri</h2></div><button class="add-btn" id="todayAddTask">＋ Görev ekle</button></div>
+          <div class="today-preview-list" id="todayPreviewList"></div>
+          <div class="empty-sessions" id="emptyTodayPreview">Bugün için görev yok. Planına küçük bir hedef ekle.</div>
+          <a class="text-link" href="#plan">Tüm planı gör →</a>
+        </article>
+      </section>
+
+      <section class="hero-grid view-section" id="today" data-section="today">
         <article class="timer-card">
           <div class="timer-head">
             <div><p class="section-kicker">ODAK SAYACI</p><h2>Şimdi neye odaklanıyorsun?</h2></div>
@@ -66,19 +97,65 @@
           <p class="timer-hint">Telefonunu sessize al. Bu süre sadece senin ve hedefinin.</p>
         </article>
 
-        <article class="today-card" id="plan">
-          <div class="card-title-row"><div><p class="section-kicker">GÜNLÜK PLAN</p><h2>Bugünün hedefleri</h2></div><button class="add-btn" id="openTaskForm">＋ Ekle</button></div>
-          <div class="plan-progress"><div class="progress-copy"><span id="planSummary">0 / 0 tamamlandı</span><strong id="planPercent">0%</strong></div><div class="progress-track"><i id="planBar"></i></div></div>
+        <article class="today-card" id="plan" data-section="plan">
+          <div class="card-title-row"><div><p class="section-kicker">DERSLER</p><h2>Planım</h2><p class="view-description">Derslerini ve ilerlemeni tek yerde takip et.</p></div><button class="add-btn" id="openTaskForm">＋ Görev ekle</button></div>
+          <div class="capacity-card" id="capacityCard">
+            <div><span id="capacityLabel">Bugün 0 dk planlandı</span><strong id="capacityStatus">120 dk kapasite</strong></div>
+            <div class="capacity-track" aria-hidden="true"><i id="capacityBar"></i></div>
+            <p id="capacityHint">Planın günün kapasitesine uygun.</p>
+          </div>
+          <div class="plan-progress hidden"><div class="progress-copy"><span id="planSummary">0 / 0 tamamlandı</span><strong id="planPercent">0%</strong></div><div class="progress-track"><i id="planBar"></i></div></div>
           <form class="task-form hidden" id="taskForm">
             <input id="taskTitle" maxlength="80" placeholder="Örn. Trigonometri tekrar" aria-label="Görev adı" required />
             <div class="form-row"><input id="taskSubject" maxlength="24" placeholder="Ders" aria-label="Ders" required /><input id="taskMinutes" type="number" min="5" max="240" step="5" value="30" aria-label="Dakika" required /><button type="submit">Ekle</button></div>
           </form>
-          <div class="task-list" id="taskList" aria-live="polite"></div>
+          <div class="subject-grid" id="subjectGrid" aria-live="polite"></div>
+          <div class="task-list hidden" id="taskList" aria-live="polite"></div>
           <div class="empty-state hidden" id="emptyTasks"><span>✦</span><p>Bugün için henüz hedef yok.</p><button id="emptyAdd">İlk hedefini ekle</button></div>
         </article>
       </section>
 
-      <section class="stats-grid" id="progress">
+      <section class="focus-history panel view-section" data-section="focus">
+        <div class="card-title-row"><div><p class="section-kicker">BUGÜNKÜ ÇALIŞMA</p><h2 id="focusDaySummary">0 dk · 0 oturum</h2></div></div>
+        <div class="session-list" id="sessionList"></div>
+        <div class="empty-sessions" id="emptySessions">İlk odak oturumun burada görünecek.</div>
+      </section>
+
+      <section class="reviews-view view-section" id="reviews" data-section="reviews">
+        <div class="view-toolbar">
+          <div><p class="section-kicker">AKILLI TEKRAR</p><h2>Unutmadan güçlendir</h2><p class="view-description">Kaynağı kapat, hatırladığını söyle ve tekrar zamanını ayarla.</p></div>
+          <button class="primary-btn compact" id="openReviewForm" type="button">＋ Tekrar ekle</button>
+        </div>
+        <form class="review-form panel hidden" id="reviewForm">
+          <div class="exam-form-head"><div><p class="section-kicker">YENİ TEKRAR</p><h3>Hatırlamak istediğin konuyu ekle</h3></div><button type="button" class="close-btn" id="closeReviewForm" aria-label="Formu kapat">×</button></div>
+          <div class="review-fields">
+            <label>Ders<input id="reviewSubject" maxlength="24" placeholder="Örn. Matematik" required></label>
+            <label>Konu<input id="reviewTopic" maxlength="60" placeholder="Örn. Trigonometri" required></label>
+            <label>İlk tekrar<select id="reviewDelay"><option value="1">Yarın</option><option value="3">3 gün sonra</option><option value="7">1 hafta sonra</option></select></label>
+            <label class="wide-field">Kendine ipucu <span>(isteğe bağlı)</span><textarea id="reviewPrompt" maxlength="240" placeholder="Örn. Sinüs teoremini hangi durumda kullanırım?"></textarea></label>
+          </div>
+          <div class="form-actions"><button type="button" class="secondary-btn" id="cancelReview">Vazgeç</button><button type="submit" class="primary-btn compact">Tekrara ekle</button></div>
+        </form>
+        <div class="review-summary-grid">
+          <article class="stat-card"><span class="stat-icon">↻</span><div><p>Bugün</p><strong id="dueReviewStat">0 tekrar</strong><small>Hazır olanlar</small></div></article>
+          <article class="stat-card"><span class="stat-icon purple">✓</span><div><p>Bu hafta</p><strong id="weeklyReviewStat">0 tekrar</strong><small>Tamamlanan</small></div></article>
+          <article class="stat-card"><span class="stat-icon orange">◷</span><div><p>Sıradaki</p><strong id="nextReviewStat">—</strong><small>Yaklaşan tekrar</small></div></article>
+        </div>
+        <div class="review-columns">
+          <article class="panel">
+            <div class="card-title-row"><div><p class="section-kicker">BUGÜN</p><h2>Tekrar kuyruğu</h2></div></div>
+            <div class="review-list" id="dueReviewList"></div>
+            <div class="empty-sessions" id="emptyDueReviews">Bugün için bekleyen tekrar yok.</div>
+          </article>
+          <article class="panel upcoming-panel">
+            <div class="card-title-row"><div><p class="section-kicker">YAKLAŞAN</p><h2>Sonraki tekrarlar</h2></div></div>
+            <div class="upcoming-list" id="upcomingReviewList"></div>
+            <div class="empty-sessions" id="emptyUpcomingReviews">Planlanmış tekrar yok.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="stats-grid view-section" id="progress" data-section="progress">
         <article class="stat-card accent-stat">
           <span class="stat-icon">◷</span><div><p>Bugün çalıştın</p><strong id="todayMinutes">0 dk</strong><small id="todayTarget">120 dk hedefin var</small></div>
           <div class="mini-ring" id="targetRing"><span id="targetPercent">0%</span></div>
@@ -87,18 +164,148 @@
         <article class="stat-card"><span class="stat-icon orange">✓</span><div><p>Tamamlanan hedef</p><strong id="doneCount">0 görev</strong><small id="doneDetail">Planının %0'i</small></div></article>
       </section>
 
-      <section class="bottom-grid">
+      <section class="bottom-grid view-section" data-section="progress">
         <article class="panel weekly-panel">
           <div class="card-title-row"><div><p class="section-kicker">HAFTALIK RİTİM</p><h2>Bu haftaki ilerlemen</h2></div><div class="week-total"><strong id="weekTotal">0 sa</strong><span>toplam</span></div></div>
           <div class="chart" id="weekChart" aria-label="Haftalık çalışma grafiği"></div>
         </article>
-        <article class="panel sessions-panel">
-          <div class="card-title-row"><div><p class="section-kicker">BUGÜN</p><h2>Çalışma günlüğü</h2></div><span class="live-badge">● CANLI</span></div>
-          <div class="session-list" id="sessionList"></div>
-          <div class="empty-sessions" id="emptySessions">İlk odak oturumun burada görünecek.</div>
+      </section>
+
+      <section class="weekly-review-wrap view-section" data-section="progress">
+        <article class="panel weekly-review-card">
+          <div class="card-title-row"><div><p class="section-kicker">60 SANİYELİK KONTROL</p><h2>Haftayı kapat</h2><p class="view-description">Kısa düşün, gelecek haftaya tek bir karar bırak.</p></div><span class="review-duration">≈ 1 dk</span></div>
+          <form id="weeklyReviewForm" class="weekly-review-form">
+            <label>Ne gelişti?<textarea id="weeklyWin" maxlength="180" placeholder="Bu hafta iyi giden şey…" required></textarea></label>
+            <label>Nerede takıldın?<textarea id="weeklyBlock" maxlength="180" placeholder="Zorlandığım nokta…" required></textarea></label>
+            <label>Gelecek hafta tek değişiklik<textarea id="weeklyChange" maxlength="180" placeholder="Gelecek hafta şunu değiştireceğim…" required></textarea></label>
+            <button class="primary-btn compact" type="submit">Haftayı kaydet</button>
+          </form>
+          <div class="last-weekly-review hidden" id="lastWeeklyReview"></div>
         </article>
       </section>
+
+      <section class="exam-view view-section" id="exams" data-section="exams">
+        <div class="view-toolbar">
+          <div><p class="section-kicker">DENEME TAKİBİ</p><h2>Net gelişimin</h2><p class="view-description">Sonuçlarını kaydet, ilerlemeni net biçimde gör.</p></div>
+          <button class="primary-btn compact" id="openExamForm">＋ Deneme ekle</button>
+        </div>
+        <form class="exam-form panel hidden" id="examForm">
+          <div class="exam-form-head"><div><p class="section-kicker">YENİ KAYIT</p><h3>Deneme sonucu ekle</h3></div><button type="button" class="close-btn" id="closeExamForm" aria-label="Formu kapat">×</button></div>
+          <div class="exam-fields">
+            <label>Sınav türü<select id="examType" required><option>TYT</option><option>AYT</option><option>YDT</option></select></label>
+            <label>Deneme adı<input id="examName" maxlength="60" placeholder="Örn. Türkiye Geneli 3" required></label>
+            <label>Tarih<input id="examDate" type="date" required></label>
+            <label>Süre <span>(dk)</span><input id="examDuration" type="number" min="1" max="600" placeholder="165"></label>
+            <label>Doğru<input id="examCorrect" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Yanlış<input id="examWrong" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Boş<input id="examBlank" type="number" min="0" max="200" step="1" value="0" required></label>
+            <label>Yayın puanı <span>(isteğe bağlı)</span><input id="examScore" type="number" min="0" max="600" step="0.01" placeholder="—"></label>
+          </div>
+          <div class="net-preview"><span>Hesaplanan net</span><strong id="netPreview">0,00</strong><small>Doğru − Yanlış / 4</small></div>
+          <p class="form-error hidden" id="examError" role="alert"></p>
+          <div class="form-actions"><button type="button" class="secondary-btn" id="cancelExam">Vazgeç</button><button type="submit" class="primary-btn compact">Denemeyi kaydet</button></div>
+        </form>
+        <div class="exam-stats stats-grid">
+          <article class="stat-card"><span class="stat-icon">↗</span><div><p>Son net</p><strong id="latestNet">—</strong><small id="latestExamName">Henüz kayıt yok</small></div></article>
+          <article class="stat-card"><span class="stat-icon purple">≈</span><div><p>Son 3 ortalama</p><strong id="averageNet">—</strong><small>Yakın dönem ritmi</small></div></article>
+          <article class="stat-card"><span class="stat-icon orange">★</span><div><p>En iyi net</p><strong id="bestNet">—</strong><small>Kişisel rekorun</small></div></article>
+          <article class="stat-card"><span class="stat-icon target-icon">◎</span><div><p>Hedefe fark</p><strong id="targetGap">—</strong><small><span id="examTargetLabel">90</span> net hedefine</small></div></article>
+        </div>
+        <div class="exam-grid">
+          <article class="panel exam-chart-panel">
+            <div class="card-title-row"><div><p class="section-kicker">NET GELİŞİMİ</p><h2>Son denemelerin</h2></div><div class="chart-tools"><select id="examFilter" aria-label="Grafikteki sınav türü"><option>TYT</option><option>AYT</option><option>YDT</option></select><label class="target-field">Hedef <input id="examTarget" type="number" min="1" max="200" step="1" value="90"> net</label></div></div>
+            <div class="exam-chart" id="examChart" aria-label="Deneme net gelişim grafiği"></div>
+            <p class="chart-insight" id="chartInsight">Gelişimi görmek için ilk denemeni ekle.</p>
+          </article>
+          <article class="panel exam-list-panel">
+            <div class="card-title-row"><div><p class="section-kicker">KAYITLAR</p><h2>Son denemeler</h2></div></div>
+            <div class="exam-list" id="examList"></div>
+            <div class="empty-sessions" id="emptyExams">Henüz deneme eklemedin.<br><button class="text-btn" id="emptyExamAdd">İlk denemeni ekle</button></div>
+          </article>
+        </div>
+        <div class="exam-action-grid">
+          <article class="panel exam-next-card">
+            <div class="card-title-row"><div><p class="section-kicker">SONRAKİ ADIM</p><h2 id="examNextTitle">İlk hata kaydını ekle</h2></div><span class="action-badge" id="examNextBadge">ÖNERİ</span></div>
+            <p id="examNextReason">Hata nedenlerini kaydettiğinde sana küçük ve uygulanabilir bir çalışma önereceğim.</p>
+            <button class="primary-btn compact" id="addSuggestedTask" type="button">Plana ekle</button>
+          </article>
+          <article class="panel mistake-panel">
+            <div class="card-title-row"><div><p class="section-kicker">HATA DEFTERİ</p><h2>Yanlışın nedenini bul</h2></div><button class="add-btn" id="openMistakeForm" type="button">＋ Hata ekle</button></div>
+            <div class="mistake-reason-summary" id="mistakeReasonSummary"></div>
+            <form class="mistake-form hidden" id="mistakeForm">
+              <div class="mistake-fields">
+                <label>Deneme<select id="mistakeExam" required></select></label>
+                <label>Ders<input id="mistakeSubject" maxlength="24" placeholder="Örn. Matematik" required></label>
+                <label>Konu<input id="mistakeTopic" maxlength="60" placeholder="Örn. Problemler" required></label>
+                <label>Sonuç<select id="mistakeOutcome" required><option value="wrong">Yanlış</option><option value="blank">Boş</option></select></label>
+                <label>Neden<select id="mistakeReason" required><option value="knowledge">Bilgi eksiği</option><option value="method">Yöntem</option><option value="calculation">İşlem</option><option value="attention">Dikkat</option><option value="time">Süre</option></select></label>
+                <label>Adet<input id="mistakeCount" type="number" min="1" max="50" value="1" required></label>
+                <label class="mistake-note">Kısa not <span>(isteğe bağlı)</span><input id="mistakeNote" maxlength="120" placeholder="Neyi karıştırdın?"></label>
+              </div>
+              <p class="form-error hidden" id="mistakeError" role="alert"></p>
+              <div class="form-actions"><button class="secondary-btn" id="cancelMistake" type="button">Vazgeç</button><button class="primary-btn compact" type="submit">Hata kaydet</button></div>
+            </form>
+            <div class="mistake-list" id="mistakeList"></div>
+            <div class="empty-sessions" id="emptyMistakes">Henüz hata kaydı yok.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="settings-view view-section" id="settings" data-section="settings">
+        <div class="view-toolbar">
+          <div><p class="section-kicker">KİŞİSELLEŞTİR</p><h2>Ayarlar</h2><p class="view-description">Çalışma alanını kendi ritmine göre düzenle.</p></div>
+          <a class="close-view" href="#today" id="closeSettings" aria-label="Ayarları kapat">×</a>
+        </div>
+        <div class="settings-grid">
+          <article class="panel settings-card">
+            <div class="settings-icon">◐</div><div class="settings-copy"><h3>Görünüm</h3><p>Renkleri ve hareketleri sana uygun hâle getir.</p></div>
+            <div class="setting-control full"><span class="control-label">Tema</span><div class="segmented" id="themeChoices" role="radiogroup" aria-label="Tema"><button type="button" data-theme="dark">Koyu</button><button type="button" data-theme="light">Açık</button></div></div>
+            <div class="setting-control full"><span class="control-label">Vurgu rengi</span><div class="color-choices" id="accentChoices" role="radiogroup" aria-label="Vurgu rengi"><button type="button" data-accent="indigo" style="--swatch:#6c7cff" aria-label="İndigo">✓</button><button type="button" data-accent="green" style="--swatch:#18b892" aria-label="Yeşil">✓</button><button type="button" data-accent="orange" style="--swatch:#f08b45" aria-label="Turuncu">✓</button><button type="button" data-accent="pink" style="--swatch:#e7689a" aria-label="Pembe">✓</button></div></div>
+            <label class="switch-row"><span><strong>Hareketleri azalt</strong><small>Gereksiz geçişleri ve animasyonları kapatır.</small></span><input id="reduceMotion" type="checkbox" role="switch"></label>
+          </article>
+          <article class="panel settings-card">
+            <div class="settings-icon">◷</div><div class="settings-copy"><h3>Odak sayacı</h3><p>Süreleri ve günlük hedefini belirle.</p></div>
+            <div class="duration-grid">
+              <label>Odak <span>dk</span><input id="focusSetting" type="number" min="5" max="120"></label>
+              <label>Kısa mola <span>dk</span><input id="shortBreakSetting" type="number" min="1" max="30"></label>
+              <label>Uzun mola <span>dk</span><input id="longBreakSetting" type="number" min="5" max="60"></label>
+              <label>Günlük kapasite <span>dk</span><input id="dailyTargetSetting" type="number" min="15" max="720" step="5"></label>
+            </div>
+            <p class="setting-note">Klasik başlangıç 25 dakikadır; çalışma ritmine göre değiştirebilirsin.</p>
+            <label class="switch-row"><span><strong>Tur bitiş sesi</strong><small>Oturum tamamlanınca kısa bir ses çalar.</small></span><input id="soundSetting" type="checkbox" role="switch"></label>
+            <button class="secondary-btn sound-test" id="testSound" type="button">Sesi dene</button>
+          </article>
+          <article class="panel settings-card data-card">
+            <div class="settings-icon">⇩</div><div class="settings-copy"><h3>Verilerin</h3><p>Kayıtlarını yedekle veya ilerlemeni sıfırla.</p></div>
+            <button class="secondary-btn full-action" id="exportData" type="button">Yedeği indir (.json)</button>
+            <div class="danger-zone">
+              <h4>İlerlemeyi sıfırla</h4><p>Görevler, çalışma geçmişi, tekrarlar, değerlendirmeler ve denemeler silinir. Tema ve sayaç ayarların korunur.</p>
+              <button class="danger-btn" id="showReset" type="button">İlerlemeyi sıfırla…</button>
+              <div class="reset-confirm hidden" id="resetConfirm"><label>Onaylamak için <strong>SIFIRLA</strong> yaz<input id="resetText" autocomplete="off"></label><div><button class="secondary-btn" id="cancelReset" type="button">Vazgeç</button><button class="danger-btn" id="confirmReset" type="button" disabled>Kalıcı olarak sil</button></div></div>
+            </div>
+          </article>
+        </div>
+      </section>
     </main>
+  </div>
+  <div class="modal-backdrop hidden" id="quickCaptureDialog" role="dialog" aria-modal="true" aria-labelledby="quickCaptureTitle">
+    <form class="modal-card" id="quickCaptureForm">
+      <div class="exam-form-head"><div><p class="section-kicker">HIZLI EKLE</p><h3 id="quickCaptureTitle">Aklındaki görevi yakala</h3></div><button type="button" class="close-btn" data-close-modal="quickCaptureDialog" aria-label="Pencereyi kapat">×</button></div>
+      <label>Görev<input id="quickTaskTitle" maxlength="80" placeholder="Örn. Paragraf testi çöz" required></label>
+      <div class="modal-row"><label>Ders<input id="quickTaskSubject" maxlength="24" placeholder="Türkçe" required></label><label>Süre<select id="quickTaskMinutes"><option value="15">15 dk</option><option value="25" selected>25 dk</option><option value="45">45 dk</option><option value="60">60 dk</option></select></label></div>
+      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="quickCaptureDialog">Vazgeç</button><button class="primary-btn compact" type="submit">Bugüne ekle</button></div>
+    </form>
+  </div>
+  <div class="modal-backdrop hidden" id="recallDialog" role="dialog" aria-modal="true" aria-labelledby="recallTitle">
+    <form class="modal-card recall-card" id="recallForm">
+      <div class="recall-symbol" aria-hidden="true">↻</div>
+      <p class="section-kicker">OTURUMU KAPAT</p>
+      <h3 id="recallTitle">Kaynağı kapat. Ne hatırlıyorsun?</h3>
+      <p><strong id="recallSubject">Genel çalışma</strong> hakkında 1–2 cümle yaz. Mükemmel olmak zorunda değil.</p>
+      <label>Konu<input id="recallTopic" maxlength="60" placeholder="Çalıştığın konu" required></label>
+      <label>Hatırladıklarım<textarea id="recallText" maxlength="400" placeholder="Kendi cümlelerinle yaz…" required></textarea></label>
+      <div class="form-actions"><button type="button" class="secondary-btn" id="skipRecall">Şimdi değil</button><button class="primary-btn compact" type="submit">Yarına tekrarla</button></div>
+    </form>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
