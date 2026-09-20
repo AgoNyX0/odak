@@ -21,7 +21,7 @@
       </a>
       <nav>
         <a class="nav-item active" href="#today" data-view-link="today"><span aria-hidden="true">⌂</span> Bugün</a>
-        <a class="nav-item" href="#plan" data-view-link="plan"><span aria-hidden="true">✓</span> Planım</a>
+        <a class="nav-item" href="#plan" data-view-link="plan"><span aria-hidden="true">▦</span> Program</a>
         <a class="nav-item" href="#reviews" data-view-link="reviews"><span aria-hidden="true">↻</span> Tekrarlar</a>
         <a class="nav-item" href="#focus" data-view-link="focus"><span aria-hidden="true">◷</span> Odak Sayacı</a>
         <a class="nav-item" href="#progress" data-view-link="progress"><span aria-hidden="true">↗</span> İlerleme</a>
@@ -67,7 +67,7 @@
           <div class="card-title-row"><div><p class="section-kicker">SIRADAKİ</p><h2>Bugünün görevleri</h2></div><button class="add-btn" id="todayAddTask">＋ Görev ekle</button></div>
           <div class="today-preview-list" id="todayPreviewList"></div>
           <div class="empty-sessions" id="emptyTodayPreview">Bugün için görev yok. Planına küçük bir hedef ekle.</div>
-          <a class="text-link" href="#plan">Tüm planı gör →</a>
+          <a class="text-link" href="#plan">Programa git →</a>
         </article>
       </section>
 
@@ -97,8 +97,24 @@
           <p class="timer-hint">Telefonunu sessize al. Bu süre sadece senin ve hedefinin.</p>
         </article>
 
-        <article class="today-card" id="plan" data-section="plan">
-          <div class="card-title-row"><div><p class="section-kicker">DERSLER</p><h2>Planım</h2><p class="view-description">Derslerini ve ilerlemeni tek yerde takip et.</p></div><button class="add-btn" id="openTaskForm">＋ Görev ekle</button></div>
+        <article class="today-card program-card" id="plan" data-section="plan">
+          <div class="program-heading">
+            <div><p class="section-kicker">60 GÜNLÜK TYT KAMPI</p><h2>Gün gün programın</h2><p class="view-description">21 Eylül–19 Kasım · 488 video · yaklaşık 163 saat 36 dakika</p></div>
+            <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button></div>
+          </div>
+          <section class="program-overview" aria-label="Program ilerlemesi">
+            <div class="program-ring" id="programRing"><strong id="programPercent">%0</strong><span>tamamlandı</span></div>
+            <div class="program-overview-copy"><span id="programPhase">Program yarın başlıyor</span><h3 id="programProgressText">0 / 120 çalışma tamamlandı</h3><div class="program-progress-track"><i id="programProgressBar"></i></div><small id="programRemaining">60 günün seni bekliyor.</small></div>
+            <div class="program-stat"><strong id="programDaysDone">0</strong><span>tam gün</span></div>
+          </section>
+          <div class="program-toolbar">
+            <div class="program-filters" role="group" aria-label="Program filtresi"><button class="program-filter active" data-program-filter="all" type="button">Tüm günler</button><button class="program-filter" data-program-filter="pending" type="button">Kalanlar</button><button class="program-filter" data-program-filter="done" type="button">Tamamlananlar</button></div>
+            <span class="program-legend"><i></i> Matematik her gün · Fen sırayla</span>
+          </div>
+          <div class="program-list" id="programList" aria-live="polite"></div>
+          <div class="empty-sessions hidden" id="emptyProgram">Bu filtrede gösterilecek gün yok.</div>
+          <div class="legacy-plan hidden" aria-hidden="true">
+          <button class="add-btn" id="openTaskForm">＋ Görev ekle</button>
           <div class="capacity-card" id="capacityCard">
             <div><span id="capacityLabel">Bugün 0 dk planlandı</span><strong id="capacityStatus">120 dk kapasite</strong></div>
             <div class="capacity-track" aria-hidden="true"><i id="capacityBar"></i></div>
@@ -112,6 +128,7 @@
           <div class="subject-grid" id="subjectGrid" aria-live="polite"></div>
           <div class="task-list hidden" id="taskList" aria-live="polite"></div>
           <div class="empty-state hidden" id="emptyTasks"><span>✦</span><p>Bugün için henüz hedef yok.</p><button id="emptyAdd">İlk hedefini ekle</button></div>
+          </div>
         </article>
       </section>
 
