@@ -109,10 +109,12 @@
           </section>
           <div class="program-toolbar">
             <div class="program-filters" role="group" aria-label="Program filtresi"><button class="program-filter active" data-program-filter="all" type="button">Tüm günler</button><button class="program-filter" data-program-filter="pending" type="button">Kalanlar</button><button class="program-filter" data-program-filter="done" type="button">Tamamlananlar</button></div>
+            <div class="week-pager" aria-label="Hafta seçimi"><button class="week-arrow" data-program-week-dir="-1" type="button" aria-label="Önceki hafta">←</button><div><strong id="programWeekLabel">1. Hafta</strong><span id="programWeekDates">21–27 Eylül</span></div><button class="week-arrow" data-program-week-dir="1" type="button" aria-label="Sonraki hafta">→</button></div>
             <span class="program-legend"><i></i> Matematik her gün · Fen sırayla</span>
           </div>
           <div class="program-list" id="programList" aria-live="polite"></div>
           <div class="empty-sessions hidden" id="emptyProgram">Bu filtrede gösterilecek gün yok.</div>
+          <nav class="week-bottom-nav" aria-label="Hafta sayfaları"><button data-program-week-dir="-1" type="button">← Önceki hafta</button><span id="programWeekCount">1 / 9</span><button data-program-week-dir="1" type="button">Sonraki hafta →</button></nav>
           <div class="legacy-plan hidden" aria-hidden="true">
           <button class="add-btn" id="openTaskForm">＋ Görev ekle</button>
           <div class="capacity-card" id="capacityCard">

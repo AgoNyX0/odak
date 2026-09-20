@@ -66,7 +66,7 @@ const PROGRAM_SCIENCE=[
   ['Biyoloji','B1–5','Canlıların özellikleri ve virüsler'],['Biyoloji','B6–12','İnorganik ve organik bileşikler'],['Biyoloji','B13–19','Enzim, vitamin, DNA ve ATP'],['Biyoloji','B20–26','Organeller ve hücre zarı'],['Biyoloji','B27–36','Sınıflandırma ve canlı grupları'],['Biyoloji','B37–43','Mitoz, mayoz ve üreme'],['Biyoloji','B44–47','Kalıtım I'],['Biyoloji','B48–50','Kalıtım II'],['Biyoloji','B51–54','Ekoloji'],['Biyoloji','B55–57','Döngüler ve çevre sorunları'],['Biyoloji','B58 · 00:00–01:29:00','Genel checkpoint I'],['Biyoloji','B58 · 01:29:00–02:58:00','Genel checkpoint II'],['Biyoloji','B58 · 02:58:00–04:27:13','Genel checkpoint III']
 ];
 const PROGRAM_DAYS=PROGRAM_MATH.map((math,index)=>({day:index+1,date:addDaysKey(PROGRAM_START,index),items:[{subject:'Matematik',range:math[0],topic:math[1]},{subject:PROGRAM_SCIENCE[index][0],range:PROGRAM_SCIENCE[index][1],topic:PROGRAM_SCIENCE[index][2]}]}));
-let programFilter='all';
+let programFilter='all',programWeek=0;
 const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
 const REASON_META={
@@ -193,7 +193,18 @@ function renderProgram(){
   $('#programDaysDone').textContent=fullDays;
   $('#programRemaining').textContent=completed===PROGRAM_DAYS.length*2?'60 günlük program tamamlandı. Harika iş!':`${PROGRAM_DAYS.length-fullDays} tam gün kaldı · Her gün iki bağlantılı çalışma.`;
   $('#programPhase').textContent=today<PROGRAM_START?'Program yarın başlıyor':today>PROGRAM_DAYS.at(-1).date?'Program dönemi sona erdi':`Bugün programın ${todayIndex+1}. günü`;
-  const visible=PROGRAM_DAYS.filter(day=>programFilter==='all'||programFilter==='done'&&programDayDone(day)||programFilter==='pending'&&!programDayDone(day));
+  const totalWeeks=Math.ceil(PROGRAM_DAYS.length/7);
+  programWeek=Math.max(0,Math.min(totalWeeks-1,programWeek));
+  const weekDays=PROGRAM_DAYS.slice(programWeek*7,programWeek*7+7);
+  const visible=weekDays.filter(day=>programFilter==='all'||programFilter==='done'&&programDayDone(day)||programFilter==='pending'&&!programDayDone(day));
+  const weekStart=dateFromKey(weekDays[0].date),weekEnd=dateFromKey(weekDays.at(-1).date);
+  const sameMonth=weekStart.getMonth()===weekEnd.getMonth();
+  const weekDates=sameMonth?`${weekStart.getDate()}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}`:`${weekStart.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}`;
+  $('#programWeekLabel').textContent=`${programWeek+1}. Hafta`;
+  $('#programWeekDates').textContent=weekDates;
+  $('#programWeekCount').textContent=`${programWeek+1} / ${totalWeeks}`;
+  document.querySelectorAll('[data-program-week-dir="-1"]').forEach(button=>button.disabled=programWeek===0);
+  document.querySelectorAll('[data-program-week-dir="1"]').forEach(button=>button.disabled=programWeek===totalWeeks-1);
   $('#programList').innerHTML=visible.map(day=>{
     const date=dateFromKey(day.date),isToday=day.date===today,isNext=day.day===focusDay.day&&todayIndex<0;
     const dateText=date.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'short'});
@@ -205,6 +216,7 @@ function renderProgram(){
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
   $('#jumpProgramDay').dataset.targetDay=focusDay.day;
+  $('#jumpProgramDay').dataset.targetWeek=Math.floor((focusDay.day-1)/7);
 }
 
 function render(){
@@ -511,7 +523,8 @@ $('#weeklyReviewForm').addEventListener('submit',event=>{
 $('#lastWeeklyReview').addEventListener('click',event=>{if(event.target.id!=='editWeeklyReview')return;const review=state.weeklyReviews.find(item=>item.weekStart===weekStartKey());if(!review)return;$('#weeklyWin').value=review.win;$('#weeklyBlock').value=review.block;$('#weeklyChange').value=review.change;$('#lastWeeklyReview').classList.add('hidden');$('#weeklyReviewForm').classList.remove('hidden');$('#weeklyWin').focus();});
 $('#programList').addEventListener('change',event=>{const key=event.target.dataset.programTask;if(!key)return;state.programCompleted[key]=event.target.checked;if(!event.target.checked)delete state.programCompleted[key];render();toast(event.target.checked?'Çalışma tamamlandı!':'Çalışma yeniden açıldı');});
 document.querySelectorAll('[data-program-filter]').forEach(button=>button.onclick=()=>{programFilter=button.dataset.programFilter;document.querySelectorAll('[data-program-filter]').forEach(item=>item.classList.toggle('active',item===button));renderProgram();});
-$('#jumpProgramDay').onclick=()=>{const day=$('#jumpProgramDay').dataset.targetDay;document.querySelector(`#program-day-${day}`)?.scrollIntoView({behavior:'smooth',block:'center'});};
+document.querySelectorAll('[data-program-week-dir]').forEach(button=>button.onclick=()=>{programWeek+=Number(button.dataset.programWeekDir);renderProgram();$('#programList').scrollIntoView({behavior:'smooth',block:'start'});});
+$('#jumpProgramDay').onclick=()=>{programWeek=Number($('#jumpProgramDay').dataset.targetWeek)||0;renderProgram();const day=$('#jumpProgramDay').dataset.targetDay;document.querySelector(`#program-day-${day}`)?.scrollIntoView({behavior:'smooth',block:'center'});};
 
 hydrateSettings();applySettings();render();updateTimer();
 
