@@ -46,6 +46,25 @@ body[data-theme="light"] .subject-card{background:#f6f7fb}body[data-theme="light
 @media(max-width:900px){.subject-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.today-hero{padding:22px;align-items:flex-start;flex-direction:column}.today-plan-preview{padding:20px}.subject-grid{grid-template-columns:1fr}.subject-card{padding:16px}body[data-view="focus"] .hero-grid{display:grid}.focus-history{margin-top:16px}.sidebar nav{margin-top:0}.nav-item,.nav-item:not(.active){padding:7px 7px}.sub-nav{font-size:.58rem}}
 
+/* Ders bazlı sade plan görünümü */
+body[data-view="plan"] main{max-width:1500px}
+body[data-view="plan"] .hero-grid{grid-template-columns:minmax(0,1180px)}
+.subject-grid{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.subject-card{display:flex;flex-direction:column;min-height:270px;padding:20px;background:linear-gradient(155deg,#19213a,#141a2f)}
+.subject-card-head h3{display:flex;align-items:center;gap:9px}
+.subject-card-head h3:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--lesson-color);box-shadow:0 0 0 5px color-mix(in srgb,var(--lesson-color) 14%,transparent)}
+.semi-gauge{width:150px;margin:18px auto 14px}
+.semi-gauge>strong{font-size:1.4rem}
+.subject-tasks{flex:1;align-content:start;min-height:48px}
+.subject-empty{margin:12px 0;color:var(--muted);font-size:.78rem;text-align:center}
+.subject-add{margin-top:auto}
+.task-form select{width:100%;background:#1b233e;border:1px solid #333d61;color:#fff;border-radius:9px;padding:10px;outline:none}
+.task-form select:focus{border-color:var(--primary)}
+body[data-theme="light"] .subject-card{background:linear-gradient(155deg,#fff,#f5f7fc)}
+body[data-theme="light"] .task-form select{background:#f7f8fc;color:var(--text)}
+@media(max-width:1120px){.subject-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){body[data-view="plan"] .today-card{padding:20px}.subject-grid{grid-template-columns:1fr}.subject-card{min-height:250px}}
+
 /* Öğrenme döngüsü: hata → plan → odak → tekrar */
 .topbar-actions{display:flex;align-items:center;gap:10px}.quick-add-btn{height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);padding:0 14px;font-weight:800;cursor:pointer}.quick-add-btn:hover{border-color:var(--primary);color:var(--primary-2)}
 .today-action-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.next-action-card,.due-review-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:15px;padding:20px;box-shadow:none}.action-icon{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:color-mix(in srgb,var(--primary) 14%,transparent);color:var(--primary-2);font-size:1.25rem;font-weight:800}.review-icon{background:rgba(88,214,166,.12);color:var(--green)}.action-copy h2{font:700 1rem Manrope;margin:0}.action-copy p:last-child{margin:3px 0 0;color:var(--muted);font-size:.78rem}.next-action-card .secondary-btn,.due-review-card .secondary-btn{white-space:nowrap;text-decoration:none}

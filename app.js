@@ -36,7 +36,15 @@ function escapeHTML(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&am
 function toast(message){const t=$('#toast');t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 function formatMinutes(min){if(min<60)return `${min} dk`;const h=Math.floor(min/60),m=min%60;return m?`${h} sa ${m} dk`:`${h} sa`;}
 function dayLabel(date){return ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'][date.getDay()];}
-const LESSON_COLORS=['#6c7cff','#18b892','#f08b45','#d9568d','#8f72df','#3b9dd8'];
+const SUBJECTS=[
+  {name:'Matematik',color:'#6c7cff'},
+  {name:'Türkçe',color:'#18b892'},
+  {name:'Fizik',color:'#3b9dd8'},
+  {name:'Kimya',color:'#ad8cff'},
+  {name:'Biyoloji',color:'#58d6a6'},
+  {name:'Sosyal',color:'#f08b45'}
+];
+const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
 const REASON_META={
   knowledge:{label:'Bilgi eksiği',minutes:35,task:'konu tekrarı + 10 soru'},
@@ -47,6 +55,15 @@ const REASON_META={
 };
 const normalizeText=value=>String(value||'').trim().toLocaleLowerCase('tr-TR');
 const formatShortDate=key=>dateFromKey(key).toLocaleDateString('tr-TR',{day:'numeric',month:'short'});
+const SUBJECT_ALIASES=new Map([
+  ['mat','Matematik'],['matematik','Matematik'],['geometri','Matematik'],
+  ['türkçe','Türkçe'],['turkce','Türkçe'],['edebiyat','Türkçe'],['paragraf','Türkçe'],
+  ['fizik','Fizik'],['kimya','Kimya'],['biyoloji','Biyoloji'],
+  ['sosyal','Sosyal'],['tarih','Sosyal'],['coğrafya','Sosyal'],['cografya','Sosyal'],['felsefe','Sosyal'],['din','Sosyal'],['din kültürü','Sosyal']
+]);
+function canonicalSubject(value){return SUBJECT_ALIASES.get(normalizeText(value))||null;}
+function subjectMeta(value){const canonical=canonicalSubject(value);return SUBJECTS.find(subject=>subject.name===canonical)||{name:String(value||'Diğer'),color:'#8b95ad'};}
+state.tasks.forEach(task=>{const canonical=canonicalSubject(task.subject);if(canonical)task.subject=canonical;});
 
 function getErrorGroups(){
   const groups=new Map();
@@ -140,21 +157,23 @@ function render(){
   const done=todays.filter(t=>t.done).length;
   const pct=todays.length?Math.round(done/todays.length*100):0;
   taskList.innerHTML='';
-  const groups=[...new Set(todays.map(t=>t.subject))].map((subject,index)=>({subject,color:LESSON_COLORS[index%LESSON_COLORS.length],tasks:todays.filter(t=>t.subject===subject)}));
-  $('#subjectGrid').innerHTML=groups.map((group,index)=>{const completed=group.tasks.filter(t=>t.done).length,pct=Math.round(completed/group.tasks.length*100),safe=`lesson-${index}`;return `<article class="subject-card" style="--lesson-color:${group.color}"><div class="subject-card-head"><h3>${escapeHTML(group.subject)}</h3><span>${completed}/${group.tasks.length} görev</span></div><div class="semi-gauge"><svg viewBox="0 0 120 66" role="img" aria-labelledby="${safe}-title ${safe}-desc"><title id="${safe}-title">${escapeHTML(group.subject)} ilerlemesi</title><desc id="${safe}-desc">${group.tasks.length} görevden ${completed} tanesi tamamlandı, yüzde ${pct}.</desc><path class="gauge-track" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60"/><path class="gauge-value" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60" style="--progress:${pct}"/></svg><strong aria-hidden="true">%${pct}</strong></div><div class="subject-tasks">${group.tasks.map(t=>`<div class="subject-task ${t.done?'done':''}"><input class="task-check" id="task-${t.id}" type="checkbox" data-id="${t.id}" ${t.done?'checked':''}><label for="task-${t.id}"><strong>${escapeHTML(t.title)}</strong><span>${t.minutes} dk</span></label><button class="delete-task" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil">×</button></div>`).join('')}</div><button class="subject-add" data-subject="${escapeHTML(group.subject)}">＋ Bu derse görev ekle</button></article>`;}).join('');
-  $('#emptyTasks').classList.toggle('hidden',todays.length>0);
+  const groups=SUBJECTS.map(subject=>({...subject,tasks:todays.filter(task=>canonicalSubject(task.subject)===subject.name)}));
+  const legacyTasks=todays.filter(task=>!canonicalSubject(task.subject));
+  if(legacyTasks.length)groups.push({name:'Diğer',color:'#8b95ad',tasks:legacyTasks,legacy:true});
+  $('#subjectGrid').innerHTML=groups.map((group,index)=>{const completed=group.tasks.filter(t=>t.done).length,groupPct=group.tasks.length?Math.round(completed/group.tasks.length*100):0,safe=`lesson-${index}`;return `<article class="subject-card ${group.tasks.length?'':'is-empty'}" style="--lesson-color:${group.color}"><div class="subject-card-head"><h3>${escapeHTML(group.name)}</h3><span>${completed}/${group.tasks.length} görev</span></div><div class="semi-gauge"><svg viewBox="0 0 120 66" role="img" aria-labelledby="${safe}-title ${safe}-desc"><title id="${safe}-title">${escapeHTML(group.name)} ilerlemesi</title><desc id="${safe}-desc">${group.tasks.length} görevden ${completed} tanesi tamamlandı, yüzde ${groupPct}.</desc><path class="gauge-track" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60"/><path class="gauge-value" pathLength="100" d="M 10 60 A 50 50 0 0 1 110 60" style="--progress:${groupPct}"/></svg><strong aria-hidden="true">%${groupPct}</strong></div><div class="subject-tasks">${group.tasks.length?group.tasks.map(t=>`<div class="subject-task ${t.done?'done':''}"><input class="task-check" id="task-${t.id}" type="checkbox" data-id="${t.id}" ${t.done?'checked':''}><label for="task-${t.id}"><strong>${escapeHTML(t.title)}</strong><span>${t.minutes} dk</span></label><button class="delete-task" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil">×</button></div>`).join(''):'<p class="subject-empty">Henüz görev yok.</p>'}</div>${group.legacy?'':`<button class="subject-add" data-subject="${escapeHTML(group.name)}">＋ Görev ekle</button>`}</article>`;}).join('');
+  $('#emptyTasks').classList.add('hidden');
   $('#planSummary').textContent=`${done} / ${todays.length} tamamlandı`;
   $('#planPercent').textContent=`${pct}%`; $('#planBar').style.width=`${pct}%`;
   $('#doneCount').textContent=`${done} görev`; $('#doneDetail').textContent=`Planının %${pct}'i`;
   const plannedMinutes=renderCapacity();
   $('#todayOverviewSummary').textContent=`${todays.length} görev · ${plannedMinutes} / ${state.dailyTarget} dk planlandı`;
-  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).slice(0,4).map(t=>`<div class="preview-task"><i style="--lesson-color:${LESSON_COLORS[Math.max(0,groups.findIndex(g=>g.subject===t.subject))%LESSON_COLORS.length]}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(t.subject)} · ${t.minutes} dk</small></span></div>`).join('');
+  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).slice(0,4).map(t=>{const meta=subjectMeta(t.subject);return `<div class="preview-task"><i style="--lesson-color:${meta.color}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(meta.name)} · ${t.minutes} dk</small></span></div>`;}).join('');
   $('#emptyTodayPreview').textContent=todays.length?'Bugünün tüm görevleri tamamlandı.':'Bugün için görev yok. Planına küçük bir hedef ekle.';
   $('#emptyTodayPreview').classList.toggle('hidden',todays.some(t=>!t.done));
 
-  const subjects=[...new Set(todays.map(t=>t.subject))];
+  const subjects=[...SUBJECTS.map(subject=>subject.name),...new Set(todays.filter(task=>!canonicalSubject(task.subject)).map(task=>task.subject))];
   const old=timerSubject.value;
-  timerSubject.innerHTML=(subjects.length?subjects:['Genel çalışma']).map(s=>`<option>${escapeHTML(s)}</option>`).join('');
+  timerSubject.innerHTML=subjects.map(s=>`<option>${escapeHTML(s)}</option>`).join('');
   if(subjects.includes(old))timerSubject.value=old;
 
   const sessions=state.sessions.filter(s=>s.date===todayKey());
@@ -200,7 +219,7 @@ taskForm.addEventListener('submit',e=>{e.preventDefault();const task={id:uid(),t
 function addSuggestedTask(){
   const action=getNextAction();
   if(action.kind!=='error')return false;
-  const task={id:uid(),title:action.title,subject:action.subject,minutes:action.minutes,done:false,date:todayKey(),source:{type:'exam-error',errorIds:action.errorIds}};
+  const task={id:uid(),title:action.title,subject:canonicalSubject(action.subject)||action.subject,minutes:action.minutes,done:false,date:todayKey(),source:{type:'exam-error',errorIds:action.errorIds}};
   state.tasks.push(task);state.errorEntries.forEach(entry=>{if(action.errorIds.includes(entry.id)){entry.status='planned';entry.taskId=task.id;}});render();toast('Öneri bugünün planına eklendi');return true;
 }
 $('#addSuggestedTask').onclick=addSuggestedTask;
@@ -451,9 +470,9 @@ function registerStudyTools(){
   register({
     name:'add_study_task',title:'Çalışma hedefi ekle',
     description:'Bugünün planına ders, görev ve süre bilgisiyle yeni bir çalışma hedefi ekler.',
-    inputSchema:{type:'object',properties:{title:{type:'string',minLength:1,maxLength:80},subject:{type:'string',minLength:1,maxLength:24},minutes:{type:'integer',minimum:5,maximum:240}},required:['title','subject','minutes'],additionalProperties:false},
+    inputSchema:{type:'object',properties:{title:{type:'string',minLength:1,maxLength:80},subject:{type:'string',enum:['Matematik','Türkçe','Fizik','Kimya','Biyoloji','Sosyal']},minutes:{type:'integer',minimum:5,maximum:240}},required:['title','subject','minutes'],additionalProperties:false},
     annotations:{readOnlyHint:false,untrustedContentHint:false},
-    execute(input){if(!input||typeof input.title!=='string'||!input.title.trim()||typeof input.subject!=='string'||!input.subject.trim()||!Number.isInteger(input.minutes)||input.minutes<5||input.minutes>240)throw new Error('Geçerli bir başlık, ders ve 5–240 arası dakika girilmeli.');const task={id:uid(),title:input.title.trim(),subject:input.subject.trim(),minutes:input.minutes,done:false,date:todayKey()};state.tasks.push(task);render();return{id:task.id,status:'planned'};}
+    execute(input){const subject=canonicalSubject(input?.subject);if(!input||typeof input.title!=='string'||!input.title.trim()||!subject||!Number.isInteger(input.minutes)||input.minutes<5||input.minutes>240)throw new Error('Geçerli bir başlık, ders ve 5–240 arası dakika girilmeli.');const task={id:uid(),title:input.title.trim(),subject,minutes:input.minutes,done:false,date:todayKey()};state.tasks.push(task);render();return{id:task.id,status:'planned'};}
   });
   register({
     name:'complete_study_task',title:'Çalışma hedefini tamamla',
@@ -479,9 +498,9 @@ function registerStudyTools(){
   register({
     name:'add_exam_error',title:'Deneme hatası ekle',
     description:'Kayıtlı bir denemeye ders, konu ve hata nedeni ekler.',
-    inputSchema:{type:'object',properties:{examId:{type:'string'},subject:{type:'string',minLength:2,maxLength:24},topic:{type:'string',minLength:2,maxLength:60},outcome:{type:'string',enum:['wrong','blank']},cause:{type:'string',enum:['knowledge','method','calculation','attention','time']},count:{type:'integer',minimum:1,maximum:200}},required:['examId','subject','topic','outcome','cause','count'],additionalProperties:false},
+    inputSchema:{type:'object',properties:{examId:{type:'string'},subject:{type:'string',enum:['Matematik','Türkçe','Fizik','Kimya','Biyoloji','Sosyal']},topic:{type:'string',minLength:2,maxLength:60},outcome:{type:'string',enum:['wrong','blank']},cause:{type:'string',enum:['knowledge','method','calculation','attention','time']},count:{type:'integer',minimum:1,maximum:200}},required:['examId','subject','topic','outcome','cause','count'],additionalProperties:false},
     annotations:{readOnlyHint:false,untrustedContentHint:false},
-    execute(input){const exam=state.exams.find(item=>item.id===input?.examId);if(!exam)throw new Error('Deneme bulunamadı.');const limit=input.outcome==='blank'?exam.blank:exam.wrong,used=state.errorEntries.filter(item=>item.examId===exam.id&&item.outcome===input.outcome).reduce((sum,item)=>sum+item.count,0);if(used+input.count>limit)throw new Error('Hata sayısı deneme sonucundaki toplamı aşıyor.');const entry={id:uid(),examId:exam.id,subject:input.subject.trim(),topic:input.topic.trim(),outcome:input.outcome,cause:input.cause,count:input.count,note:'',status:'open',taskId:null,createdAt:new Date().toISOString(),reviewedAt:null};state.errorEntries.push(entry);render();return{id:entry.id,status:'open'};}
+    execute(input){const exam=state.exams.find(item=>item.id===input?.examId),subject=canonicalSubject(input?.subject);if(!exam)throw new Error('Deneme bulunamadı.');if(!subject)throw new Error('Geçerli bir ders seçilmeli.');const limit=input.outcome==='blank'?exam.blank:exam.wrong,used=state.errorEntries.filter(item=>item.examId===exam.id&&item.outcome===input.outcome).reduce((sum,item)=>sum+item.count,0);if(used+input.count>limit)throw new Error('Hata sayısı deneme sonucundaki toplamı aşıyor.');const entry={id:uid(),examId:exam.id,subject,topic:input.topic.trim(),outcome:input.outcome,cause:input.cause,count:input.count,note:'',status:'open',taskId:null,createdAt:new Date().toISOString(),reviewedAt:null};state.errorEntries.push(entry);render();return{id:entry.id,status:'open'};}
   });
 }
 registerStudyTools();

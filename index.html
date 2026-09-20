@@ -107,7 +107,7 @@
           <div class="plan-progress hidden"><div class="progress-copy"><span id="planSummary">0 / 0 tamamlandı</span><strong id="planPercent">0%</strong></div><div class="progress-track"><i id="planBar"></i></div></div>
           <form class="task-form hidden" id="taskForm">
             <input id="taskTitle" maxlength="80" placeholder="Örn. Trigonometri tekrar" aria-label="Görev adı" required />
-            <div class="form-row"><input id="taskSubject" maxlength="24" placeholder="Ders" aria-label="Ders" required /><input id="taskMinutes" type="number" min="5" max="240" step="5" value="30" aria-label="Dakika" required /><button type="submit">Ekle</button></div>
+            <div class="form-row"><select id="taskSubject" aria-label="Ders" required><option>Matematik</option><option>Türkçe</option><option>Fizik</option><option>Kimya</option><option>Biyoloji</option><option>Sosyal</option></select><input id="taskMinutes" type="number" min="5" max="240" step="5" value="30" aria-label="Dakika" required /><button type="submit">Ekle</button></div>
           </form>
           <div class="subject-grid" id="subjectGrid" aria-live="polite"></div>
           <div class="task-list hidden" id="taskList" aria-live="polite"></div>
@@ -235,7 +235,7 @@
             <form class="mistake-form hidden" id="mistakeForm">
               <div class="mistake-fields">
                 <label>Deneme<select id="mistakeExam" required></select></label>
-                <label>Ders<input id="mistakeSubject" maxlength="24" placeholder="Örn. Matematik" required></label>
+                <label>Ders<select id="mistakeSubject" required><option>Matematik</option><option>Türkçe</option><option>Fizik</option><option>Kimya</option><option>Biyoloji</option><option>Sosyal</option></select></label>
                 <label>Konu<input id="mistakeTopic" maxlength="60" placeholder="Örn. Problemler" required></label>
                 <label>Sonuç<select id="mistakeOutcome" required><option value="wrong">Yanlış</option><option value="blank">Boş</option></select></label>
                 <label>Neden<select id="mistakeReason" required><option value="knowledge">Bilgi eksiği</option><option value="method">Yöntem</option><option value="calculation">İşlem</option><option value="attention">Dikkat</option><option value="time">Süre</option></select></label>
@@ -292,7 +292,7 @@
     <form class="modal-card" id="quickCaptureForm">
       <div class="exam-form-head"><div><p class="section-kicker">HIZLI EKLE</p><h3 id="quickCaptureTitle">Aklındaki görevi yakala</h3></div><button type="button" class="close-btn" data-close-modal="quickCaptureDialog" aria-label="Pencereyi kapat">×</button></div>
       <label>Görev<input id="quickTaskTitle" maxlength="80" placeholder="Örn. Paragraf testi çöz" required></label>
-      <div class="modal-row"><label>Ders<input id="quickTaskSubject" maxlength="24" placeholder="Türkçe" required></label><label>Süre<select id="quickTaskMinutes"><option value="15">15 dk</option><option value="25" selected>25 dk</option><option value="45">45 dk</option><option value="60">60 dk</option></select></label></div>
+      <div class="modal-row"><label>Ders<select id="quickTaskSubject" required><option>Matematik</option><option>Türkçe</option><option>Fizik</option><option>Kimya</option><option>Biyoloji</option><option>Sosyal</option></select></label><label>Süre<select id="quickTaskMinutes"><option value="15">15 dk</option><option value="25" selected>25 dk</option><option value="45">45 dk</option><option value="60">60 dk</option></select></label></div>
       <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="quickCaptureDialog">Vazgeç</button><button class="primary-btn compact" type="submit">Bugüne ekle</button></div>
     </form>
   </div>
