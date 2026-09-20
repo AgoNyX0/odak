@@ -65,7 +65,14 @@ const PROGRAM_SCIENCE=[
   ['Fizik','F1–6','Fizik Bilimine Giriş'],['Fizik','F7–10','Madde ve Özellikleri I'],['Fizik','F11–15','Madde ve Özellikleri II'],['Fizik','F16–20','Doğrusal Hareket I'],['Fizik','F21–25','Doğrusal Hareket II'],['Fizik','F26–30','Newton Yasaları I'],['Fizik','F31–35','Newton Yasaları II'],['Fizik','F36–42','İş, Güç ve Enerji'],['Fizik','F43–47','Isı, Sıcaklık ve Genleşme I'],['Fizik','F48–52','Isı, Sıcaklık ve Genleşme II'],['Fizik','F53–56','Elektrostatik I'],['Fizik','F57–61','Elektrostatik II'],['Fizik','F62–66','Mıknatıslar'],['Fizik','F67–71','Elektrik Devreleri I'],['Fizik','F72–76','Elektrik Devreleri II'],['Fizik','F77–80','Basınç I'],['Fizik','F81–89','Basınç II ve Kaldırma Kuvveti'],['Fizik','F90–94','Dalgalar I'],['Fizik','F95–99','Dalgalar II'],['Fizik','F100–103','Dalgalar III'],['Fizik','F104–108','Optik I'],['Fizik','F109–113','Optik II'],['Fizik','F114–118','Optik III'],['Fizik','F119–122','Optik IV'],
   ['Biyoloji','B1–5','Canlıların özellikleri ve virüsler'],['Biyoloji','B6–12','İnorganik ve organik bileşikler'],['Biyoloji','B13–19','Enzim, vitamin, DNA ve ATP'],['Biyoloji','B20–26','Organeller ve hücre zarı'],['Biyoloji','B27–36','Sınıflandırma ve canlı grupları'],['Biyoloji','B37–43','Mitoz, mayoz ve üreme'],['Biyoloji','B44–47','Kalıtım I'],['Biyoloji','B48–50','Kalıtım II'],['Biyoloji','B51–54','Ekoloji'],['Biyoloji','B55–57','Döngüler ve çevre sorunları'],['Biyoloji','B58 · 00:00–01:29:00','Genel checkpoint I'],['Biyoloji','B58 · 01:29:00–02:58:00','Genel checkpoint II'],['Biyoloji','B58 · 02:58:00–04:27:13','Genel checkpoint III']
 ];
-const PROGRAM_DAYS=PROGRAM_MATH.map((math,index)=>({day:index+1,date:addDaysKey(PROGRAM_START,index),items:[{subject:'Matematik',range:math[0],topic:math[1]},{subject:PROGRAM_SCIENCE[index][0],range:PROGRAM_SCIENCE[index][1],topic:PROGRAM_SCIENCE[index][2]}]}));
+const PROGRAM_MATH_SECONDS=[3323,3635,4527,4613,3704,2754,4313,5145,2999,5154,3615,3193,7155,4827,6308,4724,4278,5036,3056,6741,3567,3567,4494,5212,3960,4483,5304,7506,5093,2999,4744,2045,4359,4156,4251,3905,5644,4814,6228,4775,1389,4205,2591,6568,5889,4676,5164,3757,6596,5003,5797,4035,5940,5709,2364,4435,6517,4616,5811,2367];
+const PROGRAM_SCIENCE_SECONDS=[4194,4791,4126,4599,4777,5259,4588,6968,6191,4148,3911,4494,5548,7038,5952,6240,6018,5410,6080,6045,6321,5223,5289,6047,3589,5463,4409,4778,5133,6690,8894,4415,5831,3322,6214,4877,4337,5892,4458,9967,4920,5132,3648,5460,5136,4885,4130,4154,6054,6322,7286,7117,6751,3154,2771,2777,2055,5340,5340,5353];
+function programVideoCount(range){const match=String(range).match(/[MFKB](\d+)(?:–(\d+))?/);if(!match)return 0;return Number(match[2]||match[1])-Number(match[1])+1;}
+function formatVideoDuration(seconds){const minutes=Math.round(seconds/60),hours=Math.floor(minutes/60),rest=minutes%60;return hours?(rest?`${hours} sa ${rest} dk`:`${hours} sa`):`${minutes} dk`;}
+const PROGRAM_DAYS=PROGRAM_MATH.map((math,index)=>({day:index+1,date:addDaysKey(PROGRAM_START,index),items:[
+  {subject:'Matematik',range:math[0],topic:math[1],videoCount:programVideoCount(math[0]),durationSeconds:PROGRAM_MATH_SECONDS[index]},
+  {subject:PROGRAM_SCIENCE[index][0],range:PROGRAM_SCIENCE[index][1],topic:PROGRAM_SCIENCE[index][2],videoCount:programVideoCount(PROGRAM_SCIENCE[index][1]),durationSeconds:PROGRAM_SCIENCE_SECONDS[index]}
+]}));
 let programFilter='all',programWeek=0;
 const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
@@ -209,9 +216,11 @@ function renderProgram(){
     const date=dateFromKey(day.date),isToday=day.date===today,isNext=day.day===focusDay.day&&todayIndex<0;
     const dateText=date.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'short'});
     const done=programDayDone(day);
+    const dayVideoCount=day.items.reduce((sum,item)=>sum+item.videoCount,0);
+    const dayDuration=day.items.reduce((sum,item)=>sum+item.durationSeconds,0);
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
-      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${isToday?'Bugünün programı':isNext?'Sıradaki program':'Matematik + '+day.items[1].subject}</p></div>${done?'<span class="day-done-badge">Tamamlandı</span>':''}</header>
-      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);return `<label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${escapeHTML(item.subject)} · ${escapeHTML(item.range)}</small><strong>${escapeHTML(item.topic)}</strong></span><a href="${PROGRAM_LINKS[item.subject]}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a></label>`;}).join('')}</div>
+      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayVideoCount} video · ${formatVideoDuration(dayDuration)}</p></div>${done?'<span class="day-done-badge">Tamamlandı</span>':''}</header>
+      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);return `<label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${escapeHTML(item.subject)} · ${escapeHTML(item.range)} · ${item.videoCount} video · ${formatVideoDuration(item.durationSeconds)}</small><strong>${escapeHTML(item.topic)}</strong></span><a href="${PROGRAM_LINKS[item.subject]}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a></label>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
@@ -311,7 +320,19 @@ function completeTimer(){
 $('#toggleTimer').onclick=()=>{if(timer.running){stopTimer();return;}timer.running=true;$('#playIcon').textContent='Ⅱ';$('#playLabel').textContent='Duraklat';timer.id=setInterval(()=>{timer.left--;updateTimer();if(timer.left<=0)completeTimer();},1000);};
 $('#resetTimer').onclick=()=>{stopTimer();timer.left=timer.total;updateTimer();toast('Sayaç sıfırlandı');};
 $('#skipTimer').onclick=()=>{if(confirm(timer.isFocus?'Bu odak oturumunu tamamlandı olarak kaydetmek ister misin?':'Molayı bitirmek ister misin?'))completeTimer();};
-document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';updateTimer();});
+function activeTimerMode(){return [...document.querySelectorAll('.mode')].findIndex(button=>button.classList.contains('active'));}
+function syncTimerDurationControl(){const minutes=Math.round(timer.total/60);$('#timerDurationValue').textContent=`${minutes} dk`;}
+function setTimerDuration(minutes){
+  const modeIndex=Math.max(0,activeTimerMode()),keys=['focus','shortBreak','longBreak'],minimums=[5,1,5],maximums=[120,30,60];
+  const value=Math.max(minimums[modeIndex],Math.min(maximums[modeIndex],Math.round(minutes)));
+  stopTimer();state.settings[keys[modeIndex]]=value;
+  const mode=document.querySelectorAll('.mode')[modeIndex];mode.dataset.minutes=value;mode.querySelector('span').textContent=`${value} dk`;
+  const settingIds=['focusSetting','shortBreakSetting','longBreakSetting'];$(`#${settingIds[modeIndex]}`).value=value;
+  timer.total=value*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();save();
+}
+$('#decreaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60-[5,1,5][mode]);};
+$('#increaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60+[5,1,5][mode]);};
+document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';syncTimerDurationControl();updateTimer();});
 
 const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');
 $('#examDate').value=todayKey();
@@ -415,7 +436,7 @@ function applySettings(showMessage=false){
   const modes=[...document.querySelectorAll('.mode')];
   const values=[state.settings.focus,state.settings.shortBreak,state.settings.longBreak];
   modes.forEach((b,i)=>{b.dataset.minutes=values[i];b.querySelector('span').textContent=`${values[i]} dk`;});
-  if(!timer.running){const active=modes.findIndex(b=>b.classList.contains('active'));timer.total=values[Math.max(0,active)]*60;timer.left=timer.total;updateTimer();}
+  if(!timer.running){const active=modes.findIndex(b=>b.classList.contains('active'));timer.total=values[Math.max(0,active)]*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();}
   save();if(showMessage)toast('Ayarlar kaydedildi');
 }
 function playTone(){

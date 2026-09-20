@@ -82,6 +82,14 @@
             <button class="mode" data-minutes="5">Kısa mola <span>5 dk</span></button>
             <button class="mode" data-minutes="15">Uzun mola <span>15 dk</span></button>
           </div>
+          <div class="timer-duration-control" aria-label="Sayaç süresini ayarla">
+            <span>Seçili süre</span>
+            <div class="duration-stepper">
+              <button id="decreaseTimerDuration" type="button" aria-label="Süreyi azalt">−</button>
+              <strong id="timerDurationValue" aria-live="polite">25 dk</strong>
+              <button id="increaseTimerDuration" type="button" aria-label="Süreyi artır">＋</button>
+            </div>
+          </div>
           <div class="timer-wrap">
             <svg class="timer-ring" viewBox="0 0 220 220" aria-hidden="true">
               <circle class="ring-bg" cx="110" cy="110" r="94" />
