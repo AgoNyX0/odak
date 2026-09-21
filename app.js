@@ -325,9 +325,9 @@ $('#toggleTimer').onclick=()=>{if(timer.running){stopTimer();return;}timer.runni
 $('#resetTimer').onclick=()=>{stopTimer();timer.left=timer.total;updateTimer();toast('Sayaç sıfırlandı');};
 $('#skipTimer').onclick=()=>{if(confirm(timer.isFocus?'Bu odak oturumunu tamamlandı olarak kaydetmek ister misin?':'Molayı bitirmek ister misin?'))completeTimer();};
 function activeTimerMode(){return [...document.querySelectorAll('.mode')].findIndex(button=>button.classList.contains('active'));}
-function syncTimerDurationControl(){const minutes=Math.round(timer.total/60);$('#timerDurationValue').textContent=`${minutes} dk`;}
+function syncTimerDurationControl(){const minutes=Math.round(timer.total/60);$('#timerDurationValue').value=minutes;}
 function setTimerDuration(minutes){
-  const modeIndex=Math.max(0,activeTimerMode()),keys=['focus','shortBreak','longBreak'],minimums=[5,1,5],maximums=[120,30,60];
+  const modeIndex=Math.max(0,activeTimerMode()),keys=['focus','shortBreak','longBreak'],minimums=[5,1,5],maximums=[180,30,60];
   const value=Math.max(minimums[modeIndex],Math.min(maximums[modeIndex],Math.round(minutes)));
   stopTimer();state.settings[keys[modeIndex]]=value;
   const mode=document.querySelectorAll('.mode')[modeIndex];mode.dataset.minutes=value;mode.querySelector('span').textContent=`${value} dk`;
@@ -336,6 +336,7 @@ function setTimerDuration(minutes){
 }
 $('#decreaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60-[5,1,5][mode]);};
 $('#increaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60+[5,1,5][mode]);};
+$('#timerDurationValue').onchange=event=>setTimerDuration(Number(event.target.value)||timer.total/60);
 document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';syncTimerDurationControl();updateTimer();});
 
 const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');
@@ -451,7 +452,7 @@ document.querySelectorAll('[data-accent]').forEach(btn=>btn.onclick=()=>{state.s
 $('#reduceMotion').onchange=e=>{state.settings.reduceMotion=e.target.checked;applySettings(true);};
 $('#soundSetting').onchange=e=>{state.settings.sound=e.target.checked;applySettings(true);};
 $('#testSound').onclick=()=>playTone();
-[['focusSetting','focus',5,120],['shortBreakSetting','shortBreak',1,30],['longBreakSetting','longBreak',5,60]].forEach(([id,key,min,max])=>{$(`#${id}`).onchange=e=>{const value=Math.max(min,Math.min(max,Math.round(Number(e.target.value)||state.settings[key])));state.settings[key]=value;e.target.value=value;applySettings(true);};});
+[['focusSetting','focus',5,180],['shortBreakSetting','shortBreak',1,30],['longBreakSetting','longBreak',5,60]].forEach(([id,key,min,max])=>{$(`#${id}`).onchange=e=>{const value=Math.max(min,Math.min(max,Math.round(Number(e.target.value)||state.settings[key])));state.settings[key]=value;e.target.value=value;applySettings(true);};});
 $('#dailyTargetSetting').onchange=e=>{state.dailyTarget=Math.max(15,Math.min(720,Math.round(Number(e.target.value)||120)));e.target.value=state.dailyTarget;render();toast('Günlük hedef güncellendi');};
 $('#closeSettings').onclick=e=>{e.preventDefault();location.hash=previousView;};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.dataset.view==='settings')location.hash=previousView;});

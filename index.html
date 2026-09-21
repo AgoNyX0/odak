@@ -86,7 +86,7 @@
             <span>Seçili süre</span>
             <div class="duration-stepper">
               <button id="decreaseTimerDuration" type="button" aria-label="Süreyi azalt">−</button>
-              <strong id="timerDurationValue" aria-live="polite">25 dk</strong>
+              <input id="timerDurationValue" type="number" min="5" max="180" step="5" value="25" aria-label="Seçili süre (dakika)"><span>dk</span>
               <button id="increaseTimerDuration" type="button" aria-label="Süreyi artır">＋</button>
             </div>
           </div>
@@ -293,7 +293,7 @@
           <article class="panel settings-card">
             <div class="settings-icon">◷</div><div class="settings-copy"><h3>Odak sayacı</h3><p>Süreleri ve günlük hedefini belirle.</p></div>
             <div class="duration-grid">
-              <label>Odak <span>dk</span><input id="focusSetting" type="number" min="5" max="120"></label>
+              <label>Odak <span>dk</span><input id="focusSetting" type="number" min="5" max="180"></label>
               <label>Kısa mola <span>dk</span><input id="shortBreakSetting" type="number" min="1" max="30"></label>
               <label>Uzun mola <span>dk</span><input id="longBreakSetting" type="number" min="5" max="60"></label>
               <label>Günlük kapasite <span>dk</span><input id="dailyTargetSetting" type="number" min="15" max="720" step="5"></label>
