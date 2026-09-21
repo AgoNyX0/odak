@@ -42,7 +42,7 @@
         </div>
         <div class="topbar-actions">
           <button class="quick-add-btn" id="quickCapture" type="button" aria-label="Hızlı görev ekle">＋ <span>Hızlı ekle</span></button>
-          <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">4 gün</strong><small>çalışma serisi</small></div></div>
+          <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">0 gün</strong><small>çalışma serisi</small></div></div>
         </div>
       </header>
 
@@ -223,12 +223,15 @@
             <label>Deneme adı<input id="examName" maxlength="60" placeholder="Örn. Türkiye Geneli 3" required></label>
             <label>Tarih<input id="examDate" type="date" required></label>
             <label>Süre <span>(dk)</span><input id="examDuration" type="number" min="1" max="600" placeholder="165"></label>
-            <label>Doğru<input id="examCorrect" type="number" min="0" max="200" step="1" value="0" required></label>
-            <label>Yanlış<input id="examWrong" type="number" min="0" max="200" step="1" value="0" required></label>
-            <label>Boş<input id="examBlank" type="number" min="0" max="200" step="1" value="0" required></label>
             <label>Yayın puanı <span>(isteğe bağlı)</span><input id="examScore" type="number" min="0" max="600" step="0.01" placeholder="—"></label>
           </div>
-          <div class="net-preview"><span>Hesaplanan net</span><strong id="netPreview">0,00</strong><small>Doğru − Yanlış / 4</small></div>
+          <div class="exam-subject-grid" id="tytExamSections" aria-label="TYT ders sonuçları"></div>
+          <div class="exam-fields exam-general-fields hidden" id="generalExamCounts">
+            <label>Toplam doğru<input id="examCorrect" type="number" min="0" max="200" step="1" value="0"></label>
+            <label>Toplam yanlış<input id="examWrong" type="number" min="0" max="200" step="1" value="0"></label>
+            <label>Toplam boş<input id="examBlank" type="number" min="0" max="200" step="1" value="0"></label>
+          </div>
+          <div class="net-preview"><span>Toplam <span id="examTotalCounts">0 doğru · 0 yanlış · 0 boş</span></span><strong id="netPreview">0,00 net</strong><small>Doğru − Yanlış / 4</small></div>
           <p class="form-error hidden" id="examError" role="alert"></p>
           <div class="form-actions"><button type="button" class="secondary-btn" id="cancelExam">Vazgeç</button><button type="submit" class="primary-btn compact">Denemeyi kaydet</button></div>
         </form>

@@ -272,7 +272,20 @@ function render(){
   renderWeeklyReview();
   renderTodayActions();
   renderProgram();
+  renderStreak();
   save();
+}
+
+function renderStreak(){
+  const today=todayKey(),active=new Set();
+  state.sessions.forEach(session=>{if(session.date)active.add(session.date);});
+  state.tasks.forEach(task=>{if(task.done&&task.date)active.add(task.date);});
+  state.exams.forEach(exam=>{if(exam.date)active.add(exam.date);});
+  state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
+  PROGRAM_DAYS.forEach(day=>{if(day.items.some((_,index)=>state.programCompleted[programTaskKey(day.day,index)]))active.add(day.date);});
+  let date=active.has(today)?today:addDaysKey(today,-1),days=0;
+  while(active.has(date)&&date<=today){days++;date=addDaysKey(date,-1);}
+  $('#streakValue').textContent=`${days} gün`;
 }
 
 function renderWeek(){
@@ -464,20 +477,52 @@ $('#confirmReset').onclick=()=>{state.tasks=[];state.sessions=[];state.exams=[];
 
 const examNet=(correct,wrong)=>Number((correct-wrong/4).toFixed(2));
 const formatNet=value=>Number(value).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
-function updateNetPreview(){const c=Number($('#examCorrect').value)||0,w=Number($('#examWrong').value)||0;$('#netPreview').textContent=formatNet(examNet(c,w));}
+const TYT_EXAM_GROUPS=[
+  {key:'turkce',label:'Türkçe',limit:40},
+  {key:'sosyal',label:'Sosyal',limit:20,children:[['tarih','Tarih'],['cografya','Coğrafya'],['felsefe','Felsefe'],['din','Din']]},
+  {key:'matematik',label:'Matematik',limit:40},
+  {key:'fen',label:'Fen',limit:20,children:[['fizik','Fizik'],['kimya','Kimya'],['biyoloji','Biyoloji']]}
+];
+const EXAM_COUNT_KEYS=['correct','wrong','blank'];
+const EXAM_COUNT_LABELS={correct:'Doğru',wrong:'Yanlış',blank:'Boş'};
+function examCountFields(key,label){return `<div class="exam-count-fields">${EXAM_COUNT_KEYS.map(part=>`<label>${EXAM_COUNT_LABELS[part]}<input type="number" min="0" max="200" step="1" value="0" data-exam-group="${key}" data-exam-count="${part}" aria-label="${label} ${EXAM_COUNT_LABELS[part].toLocaleLowerCase('tr-TR')}"></label>`).join('')}</div>`;}
+$('#tytExamSections').innerHTML=TYT_EXAM_GROUPS.map(group=>group.children
+  ?`<details class="exam-subject-card exam-expandable" data-exam-card="${group.key}"><summary><span><strong>${group.label}</strong><small>Alt dersleri açıp sonuçlarını gir</small></span><span class="exam-card-total" id="examSummary-${group.key}">0D · 0Y · 0B</span></summary><div class="exam-branch-grid">${group.children.map(([key,label])=>`<fieldset class="exam-branch-card"><legend>${label}</legend>${examCountFields(`${group.key}.${key}`,label)}</fieldset>`).join('')}</div></details>`
+  :`<fieldset class="exam-subject-card"><legend>${group.label}</legend>${examCountFields(group.key,group.label)}</fieldset>`).join('');
+function examCounts(key){const values=EXAM_COUNT_KEYS.map(part=>{const input=$(`#tytExamSections [data-exam-group="${key}"][data-exam-count="${part}"]`);return input.value===''?NaN:Number(input.value);});return {correct:values[0],wrong:values[1],blank:values[2]};}
+function sumExamCounts(items){return items.reduce((sum,item)=>({correct:sum.correct+item.correct,wrong:sum.wrong+item.wrong,blank:sum.blank+item.blank}),{correct:0,wrong:0,blank:0});}
+function readExamResult(){
+  if($('#examType').value!=='TYT')return {subjects:null,...{correct:Number($('#examCorrect').value),wrong:Number($('#examWrong').value),blank:Number($('#examBlank').value)}};
+  const subjects={};
+  TYT_EXAM_GROUPS.forEach(group=>{
+    if(group.children){const branches=Object.fromEntries(group.children.map(([key])=>[key,examCounts(`${group.key}.${key}`)]));subjects[group.key]={...sumExamCounts(Object.values(branches)),branches};}
+    else subjects[group.key]=examCounts(group.key);
+  });
+  return {subjects,...sumExamCounts(Object.values(subjects))};
+}
+function updateNetPreview(){
+  const result=readExamResult(),valid=EXAM_COUNT_KEYS.every(key=>Number.isInteger(result[key])&&result[key]>=0);
+  $('#examTotalCounts').textContent=valid?`${result.correct} doğru · ${result.wrong} yanlış · ${result.blank} boş`:'Sayıları kontrol et';
+  $('#netPreview').textContent=valid?`${formatNet(examNet(result.correct,result.wrong))} net`:'—';
+  for(const key of ['sosyal','fen']){const value=result.subjects?.[key];if(value)$(`#examSummary-${key}`).textContent=`${value.correct||0}D · ${value.wrong||0}Y · ${value.blank||0}B`;}
+}
+$('#tytExamSections').addEventListener('input',updateNetPreview);
 ['examCorrect','examWrong','examBlank'].forEach(id=>$(`#${id}`).addEventListener('input',updateNetPreview));
+$('#examType').onchange=()=>{const isTyt=$('#examType').value==='TYT';$('#tytExamSections').classList.toggle('hidden',!isTyt);$('#generalExamCounts').classList.toggle('hidden',isTyt);updateNetPreview();};
 function openExamForm(){
   $('#examForm').classList.remove('hidden');$('#examDate').value=todayKey();$('#examName').focus();window.scrollTo({top:0,behavior:'smooth'});
 }
 function closeExamForm(){
-  $('#examForm').reset();$('#examDate').value=todayKey();$('#examCorrect').value=0;$('#examWrong').value=0;$('#examBlank').value=0;updateNetPreview();$('#examError').classList.add('hidden');$('#examForm').classList.add('hidden');
+  $('#examForm').reset();$('#examDate').value=todayKey();$('#tytExamSections').querySelectorAll('details').forEach(card=>card.open=false);$('#examType').onchange();$('#examError').classList.add('hidden');$('#examForm').classList.add('hidden');
 }
 $('#openExamForm').onclick=openExamForm;$('#emptyExamAdd').onclick=openExamForm;$('#closeExamForm').onclick=closeExamForm;$('#cancelExam').onclick=closeExamForm;
 $('#examForm').addEventListener('submit',e=>{
-  e.preventDefault();const correct=Number($('#examCorrect').value),wrong=Number($('#examWrong').value),blank=Number($('#examBlank').value),date=$('#examDate').value,error=$('#examError');
-  let message='';if(!Number.isInteger(correct)||!Number.isInteger(wrong)||!Number.isInteger(blank)||correct<0||wrong<0||blank<0)message='Doğru, yanlış ve boş alanlarına sıfır veya pozitif tam sayı gir.';else if(correct+wrong+blank===0)message='En az bir soru sonucu girmelisin.';else if(date>todayKey())message='Sonuç tarihi gelecekte olamaz.';
+  e.preventDefault();const {subjects,correct,wrong,blank}=readExamResult(),date=$('#examDate').value,error=$('#examError');
+  let message='';if(![correct,wrong,blank].every(value=>Number.isInteger(value)&&value>=0))message='Doğru, yanlış ve boş alanlarına sıfır veya pozitif tam sayı gir.';
+  else if(subjects){for(const group of TYT_EXAM_GROUPS){const values=subjects[group.key];if(!EXAM_COUNT_KEYS.every(key=>Number.isInteger(values[key])&&values[key]>=0)||(group.children&&!Object.values(values.branches).every(branch=>EXAM_COUNT_KEYS.every(key=>Number.isInteger(branch[key])&&branch[key]>=0)))){message=`${group.label} dersindeki sayıları kontrol et.`;break;}if(values.correct+values.wrong+values.blank>group.limit){message=`${group.label} için en fazla ${group.limit} soru girebilirsin.`;break;}}}
+  if(!message&&correct+wrong+blank===0)message='En az bir soru sonucu girmelisin.';else if(!message&&date>todayKey())message='Sonuç tarihi gelecekte olamaz.';
   if(message){error.textContent=message;error.classList.remove('hidden');return;}
-  const exam={id:uid(),type:$('#examType').value,name:$('#examName').value.trim(),date,correct,wrong,blank,net:examNet(correct,wrong),duration:Number($('#examDuration').value)||null,score:Number($('#examScore').value)||null};
+  const exam={id:uid(),type:$('#examType').value,name:$('#examName').value.trim(),date,correct,wrong,blank,net:examNet(correct,wrong),subjects,duration:Number($('#examDuration').value)||null,score:Number($('#examScore').value)||null};
   state.exams.push(exam);$('#examFilter').value=exam.type;closeExamForm();render();toast('Deneme eklendi · şimdi hatalarını sınıflandır');setTimeout(()=>openMistakeForm(exam.id),150);
 });
 $('#examTarget').onchange=e=>{state.examTarget=Math.max(1,Math.min(200,Number(e.target.value)||90));e.target.value=state.examTarget;render();toast('Net hedefi güncellendi');};
@@ -521,7 +566,7 @@ function renderExams(){
   const last3=exams.slice(-3);$('#averageNet').textContent=last3.length?formatNet(last3.reduce((a,x)=>a+x.net,0)/last3.length):'—';
   $('#bestNet').textContent=exams.length?formatNet(Math.max(...exams.map(x=>x.net))):'—';
   $('#targetGap').textContent=latest?`${latest.net>=state.examTarget?'+':''}${formatNet(latest.net-state.examTarget)}`:'—';
-  $('#examList').innerHTML=[...exams].reverse().slice(0,8).map(x=>`<div class="exam-entry"><span class="exam-entry-copy"><strong>${escapeHTML(x.name)}</strong><span>${x.type} · ${new Date(x.date+'T12:00:00').toLocaleDateString('tr-TR')} · ${x.correct}D ${x.wrong}Y ${x.blank}B</span></span><strong class="exam-net">${formatNet(x.net)}</strong><button class="analyze-exam" data-analyze-exam="${x.id}" type="button">Analiz et</button><button class="delete-exam" data-delete-exam="${x.id}" aria-label="${escapeHTML(x.name)} kaydını sil">×</button></div>`).join('');
+  $('#examList').innerHTML=[...exams].reverse().slice(0,8).map(x=>{const breakdown=x.subjects?`<details class="exam-entry-breakdown"><summary>Ders sonuçları</summary>${TYT_EXAM_GROUPS.map(group=>{const value=x.subjects[group.key];if(!value)return '';const branches=group.children&&value.branches?`<small>${group.children.map(([key,label])=>`${label} ${value.branches[key]?.correct??0}D ${value.branches[key]?.wrong??0}Y ${value.branches[key]?.blank??0}B`).join(' · ')}</small>`:'';return `<div><strong>${group.label}: ${formatNet(examNet(value.correct,value.wrong))} net</strong><span>${value.correct}D ${value.wrong}Y ${value.blank}B</span>${branches}</div>`;}).join('')}</details>`:'';return `<div class="exam-entry"><span class="exam-entry-copy"><strong>${escapeHTML(x.name)}</strong><span>${x.type} · ${new Date(x.date+'T12:00:00').toLocaleDateString('tr-TR')} · ${x.correct}D ${x.wrong}Y ${x.blank}B</span>${breakdown}</span><strong class="exam-net">${formatNet(x.net)}</strong><button class="analyze-exam" data-analyze-exam="${x.id}" type="button">Analiz et</button><button class="delete-exam" data-delete-exam="${x.id}" aria-label="${escapeHTML(x.name)} kaydını sil">×</button></div>`;}).join('');
   $('#emptyExams').classList.toggle('hidden',exams.length>0);
   renderExamChart(recent);
   save();
