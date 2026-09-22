@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-3';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-4';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -54,7 +54,50 @@ function schedule(delay = 1500) {
   clearTimeout(timer);
   timer = setTimeout(() => sync(), delay);
 }
-window.odakSync = { changed: () => { if (user) schedule(); } };
+const PERSONAL_BUCKET = 'kisisel'; // gizli; her kullanıcı sadece <kullanıcı id>/ klasörüne erişir (supabase/kisisel-dosyalar.sql)
+
+// Kişisel dosyayı (ör. hata defteri) gizli klasörden indirir. HTML, yeni sekme yerine sayfa içindeki
+// tam ekran pencerede açılır (bazı mobil/uygulama içi tarayıcılar açılır pencereleri engelliyor).
+function openPersonalFile(relPath, { type = 'application/octet-stream', download = '', title = '' } = {}) {
+  if (!supabase || !user) { window.toast?.('Bu dosyayı açmak için bulut hesabına giriş yap'); return; }
+  window.toast?.('Dosya açılıyor…');
+  supabase.storage.from(PERSONAL_BUCKET).download(`${user.id}/${relPath}`).then(async ({ data, error }) => {
+    if (error || !data) throw error || new Error('Dosya bulunamadı');
+    if (type === 'text/html') {
+      // Dosyanın kendi üst menüsü (siteye dön / indir) pencere içinde anlamsız; kaldır.
+      const doc = new DOMParser().parseFromString(await data.text(), 'text/html');
+      doc.querySelector('nav.actions')?.remove();
+      $('#personalViewerTitle').textContent = title || 'Hata defteri';
+      $('#personalViewerFrame').srcdoc = '<!doctype html>' + doc.documentElement.outerHTML;
+      $('#personalViewer').classList.remove('hidden');
+      $('#closePersonalViewer').focus();
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([data], { type }));
+    const a = document.createElement('a');
+    a.href = url; a.download = download || relPath.split('/').pop();
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }).catch(error => {
+    window.toast?.(`Dosya açılamadı: ${errorText(error)}`);
+  });
+}
+const closePersonalViewer = () => { $('#personalViewer').classList.add('hidden'); $('#personalViewerFrame').srcdoc = ''; };
+$('#closePersonalViewer').onclick = closePersonalViewer;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#personalViewer').classList.contains('hidden')) closePersonalViewer(); });
+
+async function listPersonalFiles(prefix) {
+  const { data, error } = await supabase.storage.from(PERSONAL_BUCKET).list(prefix, { limit: 1000 });
+  if (error || !data) return [];
+  const paths = [];
+  for (const entry of data) {
+    const full = `${prefix}/${entry.name}`;
+    if (entry.id) paths.push(full); else paths.push(...await listPersonalFiles(full)); // id yoksa klasör
+  }
+  return paths;
+}
+
+window.odakSync = { changed: () => { if (user) schedule(); }, openPersonalFile };
 
 async function fetchRemote() {
   const { data, error } = await supabase.from('study_data')
@@ -262,6 +305,9 @@ function bindAuthForm() {
         return;
       }
       deleteStatus('Hesap siliniyor…');
+      // Depolama dosyaları hesapla birlikte otomatik silinmiyor; önce kişisel klasörü boşalt.
+      const files = await listPersonalFiles(user.id);
+      if (files.length) await supabase.storage.from(PERSONAL_BUCKET).remove(files);
       const { error } = await supabase.rpc('delete_my_account');
       if (error) {
         const missing = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');

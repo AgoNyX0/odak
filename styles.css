@@ -34,6 +34,17 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 .import-confirm p{color:var(--muted);font-size:.8rem;margin:6px 0}
 .import-confirm>div{display:flex;gap:9px;margin-top:10px}
 .settings-card.sync-card,.settings-card.account-card{grid-column:1/-1}
+/* Hata defteri düğmeleri artık <button>; bağlantı görünümünü koru. */
+button.mistake-pack-link{border:0;cursor:pointer;font-family:inherit}
+button.mistake-pack-download{background:none;cursor:pointer;font-family:inherit}
+#mistakePacks:empty{display:none}
+.personal-viewer-card{display:flex;flex-direction:column;width:min(1100px,100%);height:min(92vh,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.personal-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.personal-viewer-card iframe{flex:1;width:100%;border:0;background:#111827}
+@media(max-width:700px){.personal-viewer-card{height:100%;border-radius:0}}
+.program-empty-state{margin-top:18px;padding:34px 20px;border:1px dashed var(--line);border-radius:16px;text-align:center;color:var(--muted)}
+.program-empty-state strong{display:block;color:var(--text);font-size:1rem;margin-bottom:6px}
+.program-empty-state p{margin:0;font-size:.85rem;line-height:1.5}
 /* Dar ekranda sol menüdeki logo (Ayarlar girişi) gizleniyor; yerine üst çubukta ayarlar düğmesi. */
 .mobile-settings-btn{display:none}
 @media(max-width:700px){
@@ -120,7 +131,7 @@ body[data-theme="light"] .capacity-card,body[data-theme="light"] .review-item,bo
 @media(max-width:1050px){.today-action-grid,.review-columns,.exam-action-grid{grid-template-columns:1fr}.weekly-review-form,.last-weekly-review{grid-template-columns:1fr 1fr}.review-fields{grid-template-columns:1fr 1fr}.mistake-fields{grid-template-columns:1fr 1fr}.mistake-note{grid-column:span 2}}
 @media(max-width:700px){.topbar-actions .streak{display:none}.quick-add-btn{position:fixed;z-index:8;right:16px;bottom:82px;width:52px;height:52px;border-radius:16px;padding:0;font-size:1.35rem;background:var(--primary);border-color:transparent;box-shadow:0 12px 30px rgba(0,0,0,.32)}.quick-add-btn span{display:none}.today-action-grid{display:block}.next-action-card,.due-review-card{grid-template-columns:auto 1fr;margin-bottom:12px;padding:16px}.next-action-card .secondary-btn,.due-review-card .secondary-btn{grid-column:1/-1;text-align:center}.review-summary-grid{grid-template-columns:1fr}.review-columns{display:block}.upcoming-panel{margin-top:16px}.review-fields,.mistake-fields,.weekly-review-form,.last-weekly-review{grid-template-columns:1fr}.mistake-note,.review-fields .wide-field{grid-column:auto}.exam-action-grid{display:block}.mistake-panel{margin-top:16px}.exam-entry{grid-template-columns:1fr auto auto}.analyze-exam{grid-column:1/2;text-align:left}.modal-backdrop{align-items:end;padding:0}.modal-card{width:100%;max-height:78vh;border-radius:22px 22px 0 0;padding:22px 18px 28px}.modal-row{grid-template-columns:1fr 110px}.rating-row{grid-template-columns:1fr}.capacity-card>div:first-child{display:grid}.topbar{padding-right:0}.sidebar nav{overflow-x:auto;justify-content:flex-start}.nav-item,.nav-item:not(.active){min-width:58px;flex:1}.reviews-view .view-toolbar{align-items:flex-start}.reviews-view .view-toolbar .primary-btn{padding:10px}.weekly-review-card{padding:18px}}
 
-/* 60 günlük çalışma programı */
+/* Çalışma programı (içerik kullanıcının verisinde: state.program) */
 body[data-view="plan"] .program-card{background:transparent;border:0;box-shadow:none;padding:0}
 .program-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:20px}.program-heading h2{font:800 clamp(1.55rem,2.5vw,2.15rem) Manrope;margin:0}.program-heading .view-description{margin:7px 0 0}.program-heading-actions{display:flex;gap:8px}
 .program-overview{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:24px;padding:22px 24px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 15%,var(--panel)),var(--panel));box-shadow:var(--shadow)}

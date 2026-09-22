@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında dört yerde birlikte artır (styles.css, app.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260922-3" />
+  <link rel="stylesheet" href="styles.css?v=20260922-4" />
 </head>
 <body>
   <div class="shell">
@@ -109,9 +109,14 @@
 
         <article class="today-card program-card" id="plan" data-section="plan">
           <div class="program-heading">
-            <div><p class="section-kicker">60 GÜNLÜK TYT KAMPI</p><h2>Gün gün programın</h2><p class="view-description">21 Eylül–19 Kasım · 488 video · yaklaşık 163 saat 36 dakika</p></div>
+            <div><p class="section-kicker" id="programKicker">ÇALIŞMA PROGRAMI</p><h2>Gün gün programın</h2><p class="view-description" id="programDescription"></p></div>
             <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button></div>
           </div>
+          <div class="program-empty-state hidden" id="programEmptyState">
+            <strong>Henüz bir çalışma programın yok.</strong>
+            <p>Program kişiye özeldir ve hesabınla birlikte saklanır. Günlük görevlerini "Bugün" ekranından ekleyebilirsin.</p>
+          </div>
+          <div id="programBody">
           <section class="program-overview" aria-label="Program ilerlemesi">
             <div class="program-ring" id="programRing"><strong id="programPercent">%0</strong><span>tamamlandı</span></div>
             <div class="program-overview-copy"><span id="programPhase">Program yarın başlıyor</span><h3 id="programProgressText">0 / 120 çalışma tamamlandı</h3><div class="program-progress-track"><i id="programProgressBar"></i></div><small id="programRemaining">60 günün seni bekliyor.</small></div>
@@ -120,11 +125,12 @@
           <div class="program-toolbar">
             <div class="program-filters" role="group" aria-label="Program filtresi"><button class="program-filter active" data-program-filter="all" type="button">Tüm günler</button><button class="program-filter" data-program-filter="pending" type="button">Kalanlar</button><button class="program-filter" data-program-filter="done" type="button">Tamamlananlar</button></div>
             <div class="week-pager" aria-label="Hafta seçimi"><button class="week-arrow" data-program-week-dir="-1" type="button" aria-label="Önceki hafta">←</button><div><strong id="programWeekLabel">1. Hafta</strong><span id="programWeekDates">21–27 Eylül</span></div><button class="week-arrow" data-program-week-dir="1" type="button" aria-label="Sonraki hafta">→</button></div>
-            <span class="program-legend"><i></i> Matematik her gün · Fen sırayla</span>
+            <span class="program-legend"><i></i> <span id="programLegend"></span></span>
           </div>
           <div class="program-list" id="programList" aria-live="polite"></div>
           <div class="empty-sessions hidden" id="emptyProgram">Bu filtrede gösterilecek gün yok.</div>
           <nav class="week-bottom-nav" aria-label="Hafta sayfaları"><button data-program-week-dir="-1" type="button">← Önceki hafta</button><span id="programWeekCount">1 / 9</span><button data-program-week-dir="1" type="button">Sonraki hafta →</button></nav>
+          </div>
           <div class="legacy-plan hidden" aria-hidden="true">
           <button class="add-btn" id="openTaskForm">＋ Görev ekle</button>
           <div class="capacity-card" id="capacityCard">
@@ -258,10 +264,7 @@
           </article>
           <article class="panel mistake-panel">
             <div class="card-title-row"><div><p class="section-kicker">HATA DEFTERİ</p><h2>Yanlışın nedenini bul</h2></div><button class="add-btn" id="openMistakeForm" type="button">＋ Hata ekle</button></div>
-            <div class="mistake-practice-pack">
-              <div><span class="mistake-pack-label">PARAF 3. DENEME</span><strong>Şıklı hata defteri</strong><small>22 soru · Sosyal, Matematik, Fizik ve Kimya · Cevap anahtarı ve MEB konu bağlantıları</small></div>
-              <div class="mistake-pack-actions"><a class="mistake-pack-link" href="./paraf-3-hata-defteri.html">Önizle ↗</a><a class="mistake-pack-download" href="./paraf-3-hata-defteri-benzer-sorular.pdf" download="Paraf-3-Hata-Defteri.pdf">PDF indir ↓</a></div>
-            </div>
+            <div id="mistakePacks"></div>
             <div class="mistake-reason-summary" id="mistakeReasonSummary"></div>
             <form class="mistake-form hidden" id="mistakeForm">
               <div class="mistake-fields">
@@ -395,8 +398,14 @@
       <div class="form-actions"><button class="secondary-btn" id="keepLocal" type="button">Bu cihazdakini kullan</button><button class="primary-btn compact" id="keepRemote" type="button">Buluttakini kullan</button></div>
     </div>
   </div>
+  <div class="modal-backdrop hidden" id="personalViewer" role="dialog" aria-modal="true" aria-label="Kişisel dosya">
+    <div class="personal-viewer-card">
+      <div class="personal-viewer-head"><strong id="personalViewerTitle">Hata defteri</strong><button type="button" class="secondary-btn" id="closePersonalViewer">Kapat ✕</button></div>
+      <iframe id="personalViewerFrame" title="Kişisel dosya" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20260922-3"></script>
-  <script type="module" src="sync.js?v=20260922-3"></script>
+  <script src="app.js?v=20260922-4"></script>
+  <script type="module" src="sync.js?v=20260922-4"></script>
 </body>
 </html>

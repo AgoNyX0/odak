@@ -7,12 +7,8 @@ const weekStartKey = (date=new Date()) => { const start=new Date(date); start.se
 const uid = () => Math.random().toString(36).slice(2,9);
 const seed = {
   dailyTarget: 120,
-  tasks: [
-    {id:uid(),title:'Trigonometri konu tekrarı',subject:'Matematik',minutes:40,done:false,date:todayKey()},
-    {id:uid(),title:'Hücre bölünmesi soru çözümü',subject:'Biyoloji',minutes:30,done:false,date:todayKey()},
-    {id:uid(),title:'Paragraf denemesi',subject:'Türkçe',minutes:25,done:true,date:todayKey()}
-  ],
-  sessions: [{id:uid(),subject:'Türkçe',minutes:25,time:'09:20',date:todayKey()}],
+  tasks: [],
+  sessions: [],
   exams: [],
   errorEntries: [],
   reviewItems: [],
@@ -44,39 +40,11 @@ const SUBJECTS=[
   {name:'Biyoloji',color:'#58d6a6'},
   {name:'Sosyal',color:'#f08b45'}
 ];
-const PROGRAM_START='2026-09-21';
-const PROGRAM_LINKS={
-  Matematik:'https://www.youtube.com/playlist?list=PLyiXTl2rW_wrvZYVh9-A5pHeVhF4xdeO4',
-  Kimya:'https://www.youtube.com/playlist?list=PL5kIOunpmSBNBWMQWLo0vjOZcNx5I_L7p',
-  Fizik:'https://www.youtube.com/playlist?list=PLjMK0Mww73Cc4v8HI329cVSd7U4cMAEVZ',
-  Biyoloji:'https://www.youtube.com/playlist?list=PL87vBAl7SzvzqiYcuIxz7ptFykyE2qYS_'
-};
-const PROGRAM_MATH=[
-  ['M1–4','Temel Kavramlar'],['M5–7','Temel Kavramlar'],['M8–12','Tek-Çift, Pozitif-Negatif'],['M13–17','Ardışık Sayılar'],['M18–22','Faktöriyel'],['M23–24','Asal Sayılar'],['M25–28','Sayı Basamakları'],['M29–33','Bölünebilme I'],['M34–38','Bölünebilme II'],['M39–43','Asal Çarpanlar'],
-  ['M44–46','EBOB-EKOK I'],['M47–48','EBOB-EKOK II'],['M49–56','Periyodik + Rasyonel Sayılar'],['M57–60','Birinci Dereceden Denklemler'],['M61–66','Basit Eşitsizlikler'],['M67–70','Mutlak Değer I'],['M71–74','Mutlak Değer II'],['M75–78','Üslü Sayılar I'],['M79–81','Üslü Sayılar II'],['M82–88','Köklü Sayılar'],
-  ['M89–91','Çarpanlara Ayırma I'],['M92–94','Çarpanlara Ayırma II'],['M95–98','Oran-Orantı I'],['M99–102','Oran-Orantı ve Ortalama'],['M103–106','Sayı Problemleri I'],['M107–109','Sayı Problemleri II'],['M110–112','Kesir Problemleri'],['M113–120','Yaş ve İşçi Problemleri'],['M121–124','Hız Problemleri I'],['M125–129','Hız Problemleri II'],
-  ['M130–132','Yüzde Problemleri I'],['M133–134','Yüzde Problemleri II'],['M135–137','Karışım Problemleri'],['M138–142','Grafik Problemleri'],['M143–146','Veri'],['M147–150','Kümeler I'],['M151–153','Kümeler II'],['M154–156','Kartezyen Çarpım'],['M157–160','Fonksiyonlar I-1'],['M161–164','Fonksiyonlar I-2'],
-  ['M165–167','Fonksiyonlar I-3'],['M168–170','Fonksiyonlar I-4'],['M171–174','Fonksiyonlar II-1'],['M175–178','Fonksiyonlar II-2'],['M179–182','Fonksiyonlar II-3'],['M183–185','Fonksiyonlar II-4'],['M186–190','Sayma, Küme ve Fonksiyon'],['M191–195','Sayma ve Permütasyon I'],['M196–201','Sayma ve Permütasyon II'],['M202–207','Kombinasyon I'],
-  ['M208–213','Kombinasyon II'],['M214–216','Binom'],['M217–223','Olasılık'],['M224–229','Mantık'],['M230–234','Polinomlar I'],['M235–239','Polinomlar II'],['M240–244','Polinomlar III'],['M245–249','İkinci Dereceden Denklemler I'],['M250–254','İkinci Dereceden Denklemler II'],['M255–259','Karmaşık Sayılar']
-];
-const PROGRAM_SCIENCE=[
-  ['Kimya','K1–3','Tanıtım ve Simyadan Kimyaya'],['Kimya','K4–5','Kimya alanları ve sembolik dil'],['Kimya','K6–7','İş güvenliği'],['Kimya','K8–9','Atom modelleri ve atom yapısı'],['Kimya','K10–11','Periyodik sistem'],['Kimya','K12–13','Periyodik özellikler'],['Kimya','K14–15','Etkileşimler ve iyonik bağ'],['Kimya','K16–18','İyonik, kovalent ve metalik bağ'],['Kimya','K19–20','Zayıf etkileşimler ve değişimler'],['Kimya','K21–22','Maddenin halleri ve katılar'],
-  ['Kimya','K23','Sıvılar'],['Kimya','K24–25','Gazlar ve doğa'],['Kimya','K26–28','Kimyanın temel kanunları'],['Kimya','K29–30','Mol I–II'],['Kimya','K31–32','Mol soruları ve tepkime türleri'],['Kimya','K33–34','Tepkime hesaplamaları I–II'],['Kimya','K35–36','Tepkime hesaplamaları III'],['Kimya','K37–38','Karışımlar'],['Kimya','K39–41','Çözünme ve derişim'],['Kimya','K42–43','Koligatif özellikler ve ayırma'],['Kimya','K44–45','Asit-baz ve tepkimeler I'],['Kimya','K46–47','Tepkimeler II ve tuzlar'],['Kimya','K48–49','Değerlendirme ve Kimya Her Yerde'],
-  ['Fizik','F1–6','Fizik Bilimine Giriş'],['Fizik','F7–10','Madde ve Özellikleri I'],['Fizik','F11–15','Madde ve Özellikleri II'],['Fizik','F16–20','Doğrusal Hareket I'],['Fizik','F21–25','Doğrusal Hareket II'],['Fizik','F26–30','Newton Yasaları I'],['Fizik','F31–35','Newton Yasaları II'],['Fizik','F36–42','İş, Güç ve Enerji'],['Fizik','F43–47','Isı, Sıcaklık ve Genleşme I'],['Fizik','F48–52','Isı, Sıcaklık ve Genleşme II'],['Fizik','F53–56','Elektrostatik I'],['Fizik','F57–61','Elektrostatik II'],['Fizik','F62–66','Mıknatıslar'],['Fizik','F67–71','Elektrik Devreleri I'],['Fizik','F72–76','Elektrik Devreleri II'],['Fizik','F77–80','Basınç I'],['Fizik','F81–89','Basınç II ve Kaldırma Kuvveti'],['Fizik','F90–94','Dalgalar I'],['Fizik','F95–99','Dalgalar II'],['Fizik','F100–103','Dalgalar III'],['Fizik','F104–108','Optik I'],['Fizik','F109–113','Optik II'],['Fizik','F114–118','Optik III'],['Fizik','F119–122','Optik IV'],
-  ['Biyoloji','B1–5','Canlıların özellikleri ve virüsler'],['Biyoloji','B6–12','İnorganik ve organik bileşikler'],['Biyoloji','B13–19','Enzim, vitamin, DNA ve ATP'],['Biyoloji','B20–26','Organeller ve hücre zarı'],['Biyoloji','B27–36','Sınıflandırma ve canlı grupları'],['Biyoloji','B37–43','Mitoz, mayoz ve üreme'],['Biyoloji','B44–47','Kalıtım I'],['Biyoloji','B48–50','Kalıtım II'],['Biyoloji','B51–54','Ekoloji'],['Biyoloji','B55–57','Döngüler ve çevre sorunları'],['Biyoloji','B58 · 00:00–01:29:00','Genel checkpoint I'],['Biyoloji','B58 · 01:29:00–02:58:00','Genel checkpoint II'],['Biyoloji','B58 · 02:58:00–04:27:13','Genel checkpoint III']
-];
-const PROGRAM_MATH_SECONDS=[3323,3635,4527,4613,3704,2754,4313,5145,2999,5154,3615,3193,7155,4827,6308,4724,4278,5036,3056,6741,3567,3567,4494,5212,3960,4483,5304,7506,5093,2999,4744,2045,4359,4156,4251,3905,5644,4814,6228,4775,1389,4205,2591,6568,5889,4676,5164,3757,6596,5003,5797,4035,5940,5709,2364,4435,6517,4616,5811,2367];
-const PROGRAM_MATH_PAGES=['7','15','21','27','31','35','41','41','41','51','57','57','67','79','87','95','95','103','103','113','123','123','135','135','147','147','159','165','177','177','189','189','197','203','211','217','229','217','235','235','235','235','253','253','253','253','275','281','281','295','295','309','315','327','339','339','339','353','353','365'];
-const PROGRAM_CHEM_PRACTICE=['SB Test 1–2 · s. 7–10','SB Test 3–7 · s. 11–20','SB Test 8–9 · s. 21–24','SB Test 12–19 · s. 31–46','SB Test 20–24 · s. 47–56','SB Test 25–35 · s. 57–78','SB Test 36–42 · s. 79–92','SB Test 43–59 · s. 95–128','SB Test 53–61 · s. 115–132','SB Test 62–66 · s. 135–144','SB Test 67–71 · s. 145–154','SB Test 72–78 · s. 155–170','SB Test 79–83 · s. 173–182','SB Test 84–89 · s. 183–194','SB Test 90–92 · s. 195–200','SB Test 93–103 · s. 201–222','SB Test 99–103 · s. 213–222','SB Test 104–107 · s. 225–232','SB Test 108–115 · s. 233–248','SB Test 116–119 · s. 249–256','SB Test 120–123 · s. 259–266','SB Test 124–130 · s. 267–280','SB Test 131–148 · s. 283–318'];
-const PROGRAM_PHYSICS_PRACTICE=['Kazanım 1–3 · s. 6, 8, 10 · Karma s. 12–15 · Günlük Hayat s. 16–19','Kazanım 1–3 · s. 20–24 · Karma 1–3 · s. 30–35','Kazanım 4–5 · s. 26–28 · Karma 4–5 · s. 34–39 · Orijinal s. 40–42','Kazanım 1–2 · s. 44, 46 · Karma 1–3 · s. 52–57','Kazanım 3–4 · s. 48, 50 · Karma 4–6 · s. 58–63 · Günlük Hayat s. 64–67','Kazanım 1–3 · s. 70–74 · Karma 1–3 · s. 80–85','Kazanım 4–5 · s. 76–78 · Karma 4–5 · s. 86–89 · Orijinal s. 94–98','Kazanım testleri · s. 100–106 · Karma s. 108–119 · Orijinal s. 126–129','Kazanım testleri · s. 130–138 · Karma s. 140–149','Karma testleri · s. 150–153 · Günlük Hayat s. 154–157 · Orijinal s. 158–160','Elektrostatik başlangıç · s. 162–172','Elektrostatik pekiştirme · s. 174–182','Elektrik Akımı · s. 184–210','Manyetizma · s. 212–224','Basınç · s. 226–248','Kaldırma Kuvveti · s. 252–272','Yay Dalgaları · s. 274–284','Su Dalgaları · s. 286–300','Ses ve Deprem Dalgası · s. 302–314','Optik başlangıç · s. 316–322','Düzlem Aynalar · s. 324–330','Küresel Aynalar · s. 332–344','Işığın Kırılması · s. 346–354','Mercekler · s. 356–368'];
-const PROGRAM_BIO_PRACTICE=['Test 1 · s. 4','Test 2–5 · s. 6–12','Test 6–8 · s. 14–18','Test 1–3 + organeller · s. 57–64','Sınıflandırma testleri · s. 91–104','Mitoz/üreme testleri · s. 133–144','Kalıtım Test 1–6 · s. 165–176','Kalıtım Test 7–12 · s. 178–186','Ekoloji Test 1–3 · s. 219–226','Döngüler Test 1–2 · s. 224–226','Kalıtım pekiştirme · s. 165–186','Ekoloji pekiştirme · s. 219–226','B58 checkpoint: karma tekrar'];
-const PROGRAM_SCIENCE_SECONDS=[4194,4791,4126,4599,4777,5259,4588,6968,6191,4148,3911,4494,5548,7038,5952,6240,6018,5410,6080,6045,6321,5223,5289,6047,3589,5463,4409,4778,5133,6690,8894,4415,5831,3322,6214,4877,4337,5892,4458,9967,4920,5132,3648,5460,5136,4885,4130,4154,6054,6322,7286,7117,6751,3154,2771,2777,2055,5340,5340,5353];
-function programVideoCount(range){const match=String(range).match(/[MFKB](\d+)(?:–(\d+))?/);if(!match)return 0;return Number(match[2]||match[1])-Number(match[1])+1;}
+// Kişisel çalışma programı koda gömülü değil: her kullanıcının kendi verisinde (state.program) durur ve bulutla eşitlenir.
+// Biçim: {start:'YYYY-MM-DD', links:{Ders:url}, days:[{day,date,items:[{subject,range,topic,practice,videoCount,durationSeconds}]}]}
 function formatVideoDuration(seconds){const minutes=Math.round(seconds/60),hours=Math.floor(minutes/60),rest=minutes%60;return hours?(rest?`${hours} sa ${rest} dk`:`${hours} sa`):`${minutes} dk`;}
-const PROGRAM_DAYS=PROGRAM_MATH.map((math,index)=>({day:index+1,date:addDaysKey(PROGRAM_START,index),items:[
-  {subject:'Matematik',range:math[0],topic:math[1],practice:`Defter konu başlangıcı: s. ${PROGRAM_MATH_PAGES[index]}`,videoCount:programVideoCount(math[0]),durationSeconds:PROGRAM_MATH_SECONDS[index]},
-  {subject:PROGRAM_SCIENCE[index][0],range:PROGRAM_SCIENCE[index][1],topic:PROGRAM_SCIENCE[index][2],practice:PROGRAM_SCIENCE[index][0]==='Kimya'?PROGRAM_CHEM_PRACTICE[index]:PROGRAM_SCIENCE[index][0]==='Fizik'?PROGRAM_PHYSICS_PRACTICE[index-23]:PROGRAM_BIO_PRACTICE[index-47],videoCount:programVideoCount(PROGRAM_SCIENCE[index][1]),durationSeconds:PROGRAM_SCIENCE_SECONDS[index]}
-]}));
+const programDays=()=>Array.isArray(state.program?.days)?state.program.days:[];
+const programLink=subject=>state.program?.links?.[subject]||'';
 let programFilter='all',programWeek=0;
 const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
@@ -159,7 +127,22 @@ function renderReviews(){
   $('#emptyUpcomingReviews').classList.toggle('hidden',upcoming.length>0);
 }
 
+// state.mistakePacks: [{id,label,title,summary,htmlPath,pdfPath,pdfName}] — yollar kullanıcının gizli klasörüne göre.
+function renderMistakePacks(){
+  const packs=Array.isArray(state.mistakePacks)?state.mistakePacks:[];
+  $('#mistakePacks').innerHTML=packs.map(pack=>`<div class="mistake-practice-pack"><div><span class="mistake-pack-label">${escapeHTML(pack.label||'')}</span><strong>${escapeHTML(pack.title||'Hata defteri')}</strong><small>${escapeHTML(pack.summary||'')}</small></div><div class="mistake-pack-actions">${pack.htmlPath?`<button class="mistake-pack-link" type="button" data-pack-open="${escapeHTML(pack.id)}">Önizle ↗</button>`:''}${pack.pdfPath?`<button class="mistake-pack-download" type="button" data-pack-pdf="${escapeHTML(pack.id)}">PDF indir ↓</button>`:''}</div></div>`).join('');
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-pack-open],[data-pack-pdf]');
+  if(!button)return;
+  const id=button.dataset.packOpen||button.dataset.packPdf,pack=(state.mistakePacks||[]).find(item=>item.id===id);
+  if(!pack)return;
+  if(!window.odakSync?.openPersonalFile){toast('Bu dosya için bulut hesabına giriş yapmalısın');return;}
+  if(button.dataset.packOpen)window.odakSync.openPersonalFile(pack.htmlPath,{type:'text/html',title:[pack.label,pack.title].filter(Boolean).join(' · ')});
+  else window.odakSync.openPersonalFile(pack.pdfPath,{type:'application/pdf',download:pack.pdfName||'hata-defteri.pdf'});
+});
 function renderMistakes(){
+  renderMistakePacks();
   const exams=[...state.exams].sort((a,b)=>b.date.localeCompare(a.date));
   const selected=$('#mistakeExam').value;
   $('#mistakeExam').innerHTML=exams.map(exam=>`<option value="${exam.id}">${escapeHTML(exam.name)} · ${exam.type}</option>`).join('');
@@ -188,10 +171,28 @@ function renderWeeklyReview(){
 
 function programTaskKey(day,itemIndex){return `${day}-${itemIndex}`;}
 function programDayDone(day){return day.items.every((_,itemIndex)=>state.programCompleted[programTaskKey(day.day,itemIndex)]);}
+function programSummary(days){
+  const first=dateFromKey(days[0].date),last=dateFromKey(days.at(-1).date);
+  const items=days.flatMap(day=>day.items);
+  const videos=items.reduce((sum,item)=>sum+(item.videoCount||0),0);
+  const minutes=Math.round(items.reduce((sum,item)=>sum+(item.durationSeconds||0),0)/60);
+  const range=`${first.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}–${last.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}`;
+  return videos?`${range} · ${videos} video · yaklaşık ${Math.floor(minutes/60)} saat ${minutes%60} dakika`:range;
+}
 function renderProgram(){
+  const PROGRAM_DAYS=programDays(),hasProgram=PROGRAM_DAYS.length>0;
+  $('#programBody').classList.toggle('hidden',!hasProgram);
+  $('#programEmptyState').classList.toggle('hidden',hasProgram);
+  $('#jumpProgramDay').classList.toggle('hidden',!hasProgram);
+  $('#programKicker').textContent=hasProgram&&state.program.kicker?state.program.kicker:'ÇALIŞMA PROGRAMI';
+  $('#programDescription').textContent=hasProgram?programSummary(PROGRAM_DAYS):'';
+  $('#programLegend').textContent=hasProgram?(state.program.legend||''):'';
+  if(!hasProgram)return;
+  const PROGRAM_START=state.program.start||PROGRAM_DAYS[0].date;
+  const itemTotal=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.length,0);
   const completed=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.filter((_,itemIndex)=>state.programCompleted[programTaskKey(day.day,itemIndex)]).length,0);
   const fullDays=PROGRAM_DAYS.filter(programDayDone).length;
-  const percent=Math.round(completed/(PROGRAM_DAYS.length*2)*100);
+  const percent=Math.round(completed/(itemTotal)*100);
   const today=todayKey();
   const todayIndex=PROGRAM_DAYS.findIndex(day=>day.date===today);
   const firstPendingIndex=PROGRAM_DAYS.findIndex(day=>!programDayDone(day));
@@ -200,9 +201,9 @@ function renderProgram(){
   $('#programPercent').textContent=`%${percent}`;
   $('#programRing').style.setProperty('--program-progress',`${percent}%`);
   $('#programProgressBar').style.width=`${percent}%`;
-  $('#programProgressText').textContent=`${completed} / ${PROGRAM_DAYS.length*2} çalışma tamamlandı`;
+  $('#programProgressText').textContent=`${completed} / ${itemTotal} çalışma tamamlandı`;
   $('#programDaysDone').textContent=fullDays;
-  $('#programRemaining').textContent=completed===PROGRAM_DAYS.length*2?'60 günlük program tamamlandı. Harika iş!':`${PROGRAM_DAYS.length-fullDays} tam gün kaldı · Her gün iki bağlantılı çalışma.`;
+  $('#programRemaining').textContent=completed===itemTotal?`${PROGRAM_DAYS.length} günlük program tamamlandı. Harika iş!`:`${PROGRAM_DAYS.length-fullDays} tam gün kaldı · Her gün bağlantılı çalışmalar.`;
   $('#programPhase').textContent=today<PROGRAM_START?'Program yarın başlıyor':today>PROGRAM_DAYS.at(-1).date?'Program dönemi sona erdi':`Bugün programın ${todayIndex+1}. günü`;
   const totalWeeks=Math.ceil(PROGRAM_DAYS.length/7);
   programWeek=Math.max(0,Math.min(totalWeeks-1,programWeek));
@@ -224,7 +225,7 @@ function renderProgram(){
     const dayDuration=day.items.reduce((sum,item)=>sum+item.durationSeconds,0);
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
       <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayVideoCount} video · ${formatVideoDuration(dayDuration)}</p></div>${done?'<span class="day-done-badge">Tamamlandı</span>':''}</header>
-      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);return `<label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${escapeHTML(item.subject)} · ${escapeHTML(item.range)} · ${item.videoCount} video · ${formatVideoDuration(item.durationSeconds)}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span><a href="${PROGRAM_LINKS[item.subject]}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a></label>`;}).join('')}</div>
+      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);return `<label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${escapeHTML(item.subject)} · ${escapeHTML(item.range)} · ${item.videoCount} video · ${formatVideoDuration(item.durationSeconds)}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
@@ -282,7 +283,7 @@ function renderStreak(){
   state.tasks.forEach(task=>{if(task.done&&task.date)active.add(task.date);});
   state.exams.forEach(exam=>{if(exam.date)active.add(exam.date);});
   state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
-  PROGRAM_DAYS.forEach(day=>{if(day.items.some((_,index)=>state.programCompleted[programTaskKey(day.day,index)]))active.add(day.date);});
+  programDays().forEach(day=>{if(day.items.some((_,index)=>state.programCompleted[programTaskKey(day.day,index)]))active.add(day.date);});
   let date=active.has(today)?today:addDaysKey(today,-1),days=0;
   while(active.has(date)&&date<=today){days++;date=addDaysKey(date,-1);}
   $('#streakValue').textContent=`${days} gün`;
