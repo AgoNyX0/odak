@@ -177,8 +177,31 @@ function renderWeeklyReview(){
   if(review)$('#lastWeeklyReview').innerHTML=`<div><span>Bu haftanın özeti</span><strong>${escapeHTML(review.win)}</strong></div><div><span>Takıldığın yer</span><strong>${escapeHTML(review.block)}</strong></div><div><span>Tek değişiklik</span><strong>${escapeHTML(review.change)}</strong></div><button class="secondary-btn" type="button" id="editWeeklyReview">Düzenle</button>`;
 }
 
+// Tamamlanma işaretleri çalışmanın kalıcı kimliğine bağlı: araya gün/çalışma eklenince kaymaz.
+// Eski programlar "gün-sıra" anahtarı kullanıyordu; bir kez kimliklere çevriliyor.
+function ensureProgramIds(){
+  const days=state.program?.days;
+  if(!Array.isArray(days))return;
+  let changed=false;
+  days.forEach(day=>day.items.forEach((item,index)=>{
+    if(item.id)return;
+    item.id=uid();
+    const legacy=`${day.day}-${index}`;
+    if(state.programCompleted[legacy]){delete state.programCompleted[legacy];state.programCompleted[item.id]=true;}
+    changed=true;
+  }));
+  if(changed)save();
+}
+ensureProgramIds();
 function programTaskKey(day,itemIndex){return `${day}-${itemIndex}`;}
-function programDayDone(day){return day.items.every((_,itemIndex)=>state.programCompleted[programTaskKey(day.day,itemIndex)]);}
+function programDayDone(day){return day.items.length>0&&day.items.every(item=>state.programCompleted[item.id]);}
+// Çalışma türleri: kullanıcı ne yapacağını ve kaç tane olduğunu kendisi giriyor.
+const PROGRAM_TYPES={video:{label:'Konu videosu',unit:'video'},test:{label:'Test çöz',unit:'test'},soru:{label:'Soru çöz',unit:'soru'},tekrar:{label:'Konu tekrarı',unit:''},deneme:{label:'Deneme',unit:'deneme'}};
+function programAmountLabel(item){
+  if(item.amount&&PROGRAM_TYPES[item.type]?.unit)return `${item.amount} ${PROGRAM_TYPES[item.type].unit}`;
+  if(item.videoCount)return `${item.videoCount} video`;
+  return PROGRAM_TYPES[item.type]?.label||'';
+}
 function programSummary(days){
   const first=dateFromKey(days[0].date),last=dateFromKey(days.at(-1).date);
   const items=days.flatMap(day=>day.items);
@@ -192,14 +215,13 @@ function renderProgram(){
   $('#programBody').classList.toggle('hidden',!hasProgram);
   $('#programEmptyState').classList.toggle('hidden',hasProgram);
   $('#jumpProgramDay').classList.toggle('hidden',!hasProgram);
-  $('#openBuilder').classList.toggle('hidden',!hasProgram);
   $('#programKicker').textContent=hasProgram&&state.program.kicker?state.program.kicker:'ÇALIŞMA PROGRAMI';
   $('#programDescription').textContent=hasProgram?programSummary(PROGRAM_DAYS):'';
   $('#programLegend').textContent=hasProgram?(state.program.legend||''):'';
   if(!hasProgram)return;
   const PROGRAM_START=state.program.start||PROGRAM_DAYS[0].date;
   const itemTotal=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.length,0);
-  const completed=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.filter((_,itemIndex)=>state.programCompleted[programTaskKey(day.day,itemIndex)]).length,0);
+  const completed=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.filter(item=>state.programCompleted[item.id]).length,0);
   const fullDays=PROGRAM_DAYS.filter(programDayDone).length;
   const percent=Math.round(completed/(itemTotal)*100);
   const today=todayKey();
@@ -234,8 +256,8 @@ function renderProgram(){
     const dayDuration=day.items.reduce((sum,item)=>sum+(item.durationSeconds||0),0);
     const dayMeta=[day.items.length?`${day.items.length} çalışma`:'',dayVideoCount?`${dayVideoCount} video`:'',dayDuration?formatVideoDuration(dayDuration):''].filter(Boolean).join(' · ');
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
-      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.day}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
-      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',item.videoCount?`${item.videoCount} video`:'',item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-remove" type="button" data-remove-item="${day.day}-${itemIndex}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
+      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.date}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
+      <div class="program-day-tasks">${day.items.map(item=>{const checked=Boolean(state.programCompleted[item.id]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',programAmountLabel(item),item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${item.id}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-remove" type="button" data-remove-item="${item.id}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
@@ -293,7 +315,7 @@ function renderStreak(){
   state.tasks.forEach(task=>{if(task.done&&task.date)active.add(task.date);});
   state.exams.forEach(exam=>{if(exam.date)active.add(exam.date);});
   state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
-  programDays().forEach(day=>{if(day.items.some((_,index)=>state.programCompleted[programTaskKey(day.day,index)]))active.add(day.date);});
+  programDays().forEach(day=>{if(day.items.some(item=>state.programCompleted[item.id]))active.add(day.date);});
   let date=active.has(today)?today:addDaysKey(today,-1),days=0;
   while(active.has(date)&&date<=today){days++;date=addDaysKey(date,-1);}
   $('#streakValue').textContent=`${days} gün`;

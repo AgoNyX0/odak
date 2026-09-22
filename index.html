@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında dört yerde birlikte artır (styles.css, app.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260922-7" />
+  <link rel="stylesheet" href="styles.css?v=20260922-8" />
 </head>
 <body>
   <div class="shell">
@@ -110,12 +110,12 @@
         <article class="today-card program-card" id="plan" data-section="plan">
           <div class="program-heading">
             <div><p class="section-kicker" id="programKicker">ÇALIŞMA PROGRAMI</p><h2>Gün gün programın</h2><p class="view-description" id="programDescription"></p></div>
-            <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button><button class="secondary-btn compact hidden" id="openBuilder" type="button">Programı yenile</button></div>
+            <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button><button class="primary-btn compact" id="openEntry" type="button">＋ Çalışma ekle</button></div>
           </div>
           <div class="program-empty-state hidden" id="programEmptyState">
             <strong>Henüz bir çalışma programın yok.</strong>
-            <p>Hedef sınavını, konularını ve günlük temponu seç; program gün gün oluşsun. Program kişiye özeldir, hesabınla birlikte saklanır.</p>
-            <button class="primary-btn compact" id="openBuilderEmpty" type="button">Program oluştur</button>
+            <p>Programını kendin kuruyorsun: tarihi, dersi, konuyu ve o gün ne yapacağını (kaç video, kaç test, kaç soru) sen seçiyorsun. İstersen çalışmayı belirli aralıklarla tekrar ettirebilirsin. Program kişiye özeldir, hesabınla birlikte saklanır.</p>
+            <button class="primary-btn compact" id="openEntryEmpty" type="button">İlk çalışmanı ekle</button>
           </div>
           <div id="programBody">
           <section class="program-overview" aria-label="Program ilerlemesi">
@@ -399,31 +399,32 @@
       <div class="form-actions"><button class="secondary-btn" id="keepLocal" type="button">Bu cihazdakini kullan</button><button class="primary-btn compact" id="keepRemote" type="button">Buluttakini kullan</button></div>
     </div>
   </div>
-  <div class="modal-backdrop hidden" id="programBuilder" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
-    <form class="modal-card builder-card" id="builderForm">
-      <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="builderTitle">Çalışma programı oluştur</h3></div><button type="button" class="close-btn" data-close-modal="programBuilder" aria-label="Pencereyi kapat">×</button></div>
-      <div class="builder-fields">
-        <label>Hedef sınav<select id="builderExam"></select></label>
-        <label>Başlangıç<input id="builderStart" type="date" required></label>
-        <label>Kaç gün<input id="builderDays" type="number" min="1" max="365" value="30" required></label>
-        <label>Günde kaç konu<input id="builderPerDay" type="number" min="1" max="6" value="2" required></label>
-        <label>Konu başına süre (dk)<input id="builderMinutes" type="number" min="10" max="300" step="5" value="45" required></label>
-        <label>Dinlenme günü<select id="builderRest"><option value="">Yok</option><option value="1">Pazartesi</option><option value="2">Salı</option><option value="3">Çarşamba</option><option value="4">Perşembe</option><option value="5">Cuma</option><option value="6">Cumartesi</option><option value="0">Pazar</option></select></label>
+  <div class="modal-backdrop hidden" id="programEntry" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
+    <form class="modal-card entry-card" id="entryForm">
+      <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="entryTitle">Çalışma ekle</h3></div><button type="button" class="close-btn" data-close-modal="programEntry" aria-label="Pencereyi kapat">×</button></div>
+      <div class="entry-fields">
+        <label>Tarih<input id="entryDate" type="date" required></label>
+        <label>Ders<select id="entrySubject" required></select></label>
+        <label class="entry-topic">Konu<input id="entryTopic" list="entryTopicList" maxlength="80" placeholder="Listeden seç ya da kendin yaz" autocomplete="off" required><datalist id="entryTopicList"></datalist></label>
+        <label>Ne yapacaksın<select id="entryType">
+          <option value="video">Konu videosu izle</option>
+          <option value="test">Test çöz</option>
+          <option value="soru">Soru çöz</option>
+          <option value="tekrar">Konu tekrarı</option>
+          <option value="deneme">Deneme çöz</option>
+        </select></label>
+        <label id="entryAmountLabel">Kaç video<input id="entryAmount" type="number" min="1" max="500" value="1"></label>
+        <label>Süre (dk) <span>(isteğe bağlı)</span><input id="entryMinutes" type="number" min="5" max="600" step="5" placeholder="Örn. 45"></label>
+        <label class="entry-note">Kaynak / not <span>(isteğe bağlı)</span><input id="entryNote" maxlength="90" placeholder="Örn. Benim Hocam TYT Kimya · Test 3, s. 24"></label>
       </div>
-      <div class="builder-subjects-head"><strong>Dersler ve konular</strong><span id="builderSelectedCount">0 konu seçildi</span></div>
-      <div class="builder-subjects" id="builderSubjects"></div>
-      <p class="builder-summary" id="builderSummary"></p>
-      <p class="form-error hidden" id="builderError" role="alert"></p>
-      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="programBuilder">Vazgeç</button><button class="primary-btn compact" type="submit" id="builderSubmit">Programı oluştur</button></div>
-    </form>
-  </div>
-  <div class="modal-backdrop hidden" id="programItemDialog" role="dialog" aria-modal="true" aria-labelledby="programItemTitle">
-    <form class="modal-card" id="programItemForm">
-      <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="programItemTitle">Güne çalışma ekle</h3></div><button type="button" class="close-btn" data-close-modal="programItemDialog" aria-label="Pencereyi kapat">×</button></div>
-      <div class="modal-row"><label>Ders<select id="programItemSubject" required></select></label><label>Süre (dk)<input id="programItemMinutes" type="number" min="5" max="300" step="5" value="45" required></label></div>
-      <label>Konu<input id="programItemTopic" maxlength="80" placeholder="Örn. Üslü Sayılar" required></label>
-      <label>Not <span>(isteğe bağlı)</span><input id="programItemPractice" maxlength="90" placeholder="Örn. SB Test 3 · s. 24"></label>
-      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="programItemDialog">Vazgeç</button><button class="primary-btn compact" type="submit">Ekle</button></div>
+      <label class="switch-row entry-repeat-toggle"><span><strong>Tekrar et</strong><small>Aynı çalışmayı belirli aralıklarla programa ekler.</small></span><input id="entryRepeat" type="checkbox" role="switch"></label>
+      <div class="entry-repeat hidden" id="entryRepeatFields">
+        <label>Her kaç günde bir<input id="entryRepeatEvery" type="number" min="1" max="120" value="7"></label>
+        <label>Kaç kez tekrar<input id="entryRepeatCount" type="number" min="1" max="30" value="3"></label>
+        <p class="entry-repeat-note" id="entryRepeatNote"></p>
+      </div>
+      <p class="form-error hidden" id="entryError" role="alert"></p>
+      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="programEntry">Vazgeç</button><button type="button" class="secondary-btn" id="entrySaveMore">Ekle ve devam et</button><button class="primary-btn compact" type="submit">Ekle</button></div>
     </form>
   </div>
   <div class="modal-backdrop hidden" id="personalViewer" role="dialog" aria-modal="true" aria-label="Kişisel dosya">
@@ -433,9 +434,9 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260922-7"></script>
-  <script src="app.js?v=20260922-7"></script>
-  <script src="program-builder.js?v=20260922-7"></script>
-  <script type="module" src="sync.js?v=20260922-7"></script>
+  <script src="curriculum.js?v=20260922-8"></script>
+  <script src="app.js?v=20260922-8"></script>
+  <script src="program-editor.js?v=20260922-8"></script>
+  <script type="module" src="sync.js?v=20260922-8"></script>
 </body>
 </html>
