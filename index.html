@@ -324,15 +324,6 @@
                   <label>Yeni şifre (tekrar)<input id="syncNewPassword2" type="password" autocomplete="new-password" minlength="6" required></label>
                   <div class="sync-auth-actions"><button class="primary-btn compact" id="syncSavePassword" type="submit">Kaydet</button><button class="secondary-btn" id="syncCancelPassword" type="button">Vazgeç</button></div>
                 </form>
-                <div class="danger-zone account-delete">
-                  <h4>Hesabımı sil</h4><p>Hesabın ve buluttaki tüm verilerin kalıcı olarak silinir; geri alınamaz. Bu tarayıcıdaki kopya silinmez, istersen önce yedeğini indir.</p>
-                  <button class="danger-btn" id="showDeleteAccount" type="button">Hesabımı sil…</button>
-                  <form class="sync-form hidden" id="deleteAccountForm">
-                    <label>Mevcut şifre<input id="deleteAccountPassword" type="password" autocomplete="current-password" required></label>
-                    <label>Onaylamak için <strong>SİL</strong> yaz<input id="deleteAccountText" autocomplete="off" required></label>
-                    <div class="sync-auth-actions"><button class="secondary-btn" id="cancelDeleteAccount" type="button">Vazgeç</button><button class="danger-btn" id="confirmDeleteAccount" type="submit" disabled>Hesabı kalıcı olarak sil</button></div>
-                  </form>
-                </div>
               </div>
             </div>
           </article>
@@ -351,6 +342,18 @@
               <h4>İlerlemeyi sıfırla</h4><p>Görevler, çalışma geçmişi, tekrarlar, değerlendirmeler ve denemeler silinir. Tema ve sayaç ayarların korunur.</p>
               <button class="danger-btn" id="showReset" type="button">İlerlemeyi sıfırla…</button>
               <div class="reset-confirm hidden" id="resetConfirm"><label>Onaylamak için <strong>SIFIRLA</strong> yaz<input id="resetText" autocomplete="off"></label><div><button class="secondary-btn" id="cancelReset" type="button">Vazgeç</button><button class="danger-btn" id="confirmReset" type="button" disabled>Kalıcı olarak sil</button></div></div>
+            </div>
+          </article>
+          <article class="panel settings-card account-card hidden" id="accountCard">
+            <div class="settings-icon">⚠</div><div class="settings-copy"><h3>Hesap</h3><p>Bulut hesabını kalıcı olarak kapat.</p></div>
+            <div class="danger-zone">
+              <h4>Hesabımı sil</h4><p>Hesabın ve buluttaki tüm verilerin kalıcı olarak silinir; geri alınamaz. Bu tarayıcıdaki kopya silinmez, istersen önce yedeğini indir.</p>
+              <button class="danger-btn" id="showDeleteAccount" type="button">Hesabımı sil…</button>
+              <form class="sync-form hidden" id="deleteAccountForm">
+                <label>Mevcut şifre<input id="deleteAccountPassword" type="password" autocomplete="current-password" required></label>
+                <label>Onaylamak için <strong>SİL</strong> yaz<input id="deleteAccountText" autocomplete="off" required></label>
+                <div class="sync-auth-actions"><button class="secondary-btn" id="cancelDeleteAccount" type="button">Vazgeç</button><button class="danger-btn" id="confirmDeleteAccount" type="submit" disabled>Hesabı kalıcı olarak sil</button></div>
+              </form>
             </div>
           </article>
         </div>

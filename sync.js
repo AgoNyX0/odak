@@ -150,6 +150,7 @@ function renderAuth() {
   $('#syncSignedIn').classList.toggle('hidden', !user);
   $('#syncPasswordForm').classList.add('hidden');
   $('#deleteAccountForm').classList.add('hidden');
+  $('#accountCard').classList.toggle('hidden', !user);
   if (user) $('#syncUser').textContent = user.email;
   else setStatus('Giriş yapmadın; veriler sadece bu tarayıcıda.');
 }

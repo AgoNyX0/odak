@@ -33,7 +33,7 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 .import-confirm h4{margin:0}
 .import-confirm p{color:var(--muted);font-size:.8rem;margin:6px 0}
 .import-confirm>div{display:flex;gap:9px;margin-top:10px}
-.settings-card.sync-card{grid-column:1/-1}
+.settings-card.sync-card,.settings-card.account-card{grid-column:1/-1}
 .sync-status,.sync-forms{grid-column:1/-1}
 .sync-status{margin:14px 0 4px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--muted) 10%,transparent);color:var(--muted);font-size:.82rem;line-height:1.45}
 .sync-status[data-tone="ok"]{color:#4fd1a5;background:rgba(79,209,165,.09)}
