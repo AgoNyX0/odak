@@ -304,9 +304,39 @@
             <label class="switch-row"><span><strong>Tur bitiş sesi</strong><small>Oturum tamamlanınca kısa bir ses çalar.</small></span><input id="soundSetting" type="checkbox" role="switch"></label>
             <button class="secondary-btn sound-test" id="testSound" type="button">Sesi dene</button>
           </article>
+          <article class="panel settings-card sync-card">
+            <div class="settings-icon">☁</div><div class="settings-copy"><h3>Bulut eşitleme</h3><p>Giriş yap; verilerin telefon dahil her cihazda aynı olsun.</p></div>
+            <p class="sync-status" id="syncStatus" role="status">Bulut eşitleme hazırlanıyor…</p>
+            <div class="sync-forms hidden" id="syncForms">
+              <div id="syncSignedOut">
+                <form class="sync-form" id="syncAuthForm">
+                  <label>E-posta<input id="syncEmail" type="email" autocomplete="email" placeholder="ornek@gmail.com" required></label>
+                  <label>Şifre<input id="syncPassword" type="password" autocomplete="current-password" minlength="6" placeholder="En az 6 karakter" required></label>
+                  <div class="sync-auth-actions"><button class="primary-btn compact" id="syncSignIn" type="submit">Giriş yap</button><button class="secondary-btn" id="syncSignUp" type="button">Hesap oluştur</button></div>
+                </form>
+              </div>
+              <div class="sync-signed-in hidden" id="syncSignedIn">
+                <p><span>Giriş yapıldı:</span> <strong id="syncUser"></strong></p>
+                <div><button class="secondary-btn" id="syncNow" type="button">Şimdi eşitle</button><button class="secondary-btn" id="syncShowPassword" type="button">Şifreyi değiştir</button><button class="secondary-btn" id="syncSignOut" type="button">Çıkış yap</button></div>
+                <form class="sync-form hidden" id="syncPasswordForm">
+                  <label>Yeni şifre<input id="syncNewPassword" type="password" autocomplete="new-password" minlength="6" required></label>
+                  <label>Yeni şifre (tekrar)<input id="syncNewPassword2" type="password" autocomplete="new-password" minlength="6" required></label>
+                  <div class="sync-auth-actions"><button class="primary-btn compact" id="syncSavePassword" type="submit">Kaydet</button><button class="secondary-btn" id="syncCancelPassword" type="button">Vazgeç</button></div>
+                </form>
+              </div>
+            </div>
+          </article>
           <article class="panel settings-card data-card">
-            <div class="settings-icon">⇩</div><div class="settings-copy"><h3>Verilerin</h3><p>Kayıtlarını yedekle veya ilerlemeni sıfırla.</p></div>
-            <button class="secondary-btn full-action" id="exportData" type="button">Yedeği indir (.json)</button>
+            <div class="settings-icon">⇩</div><div class="settings-copy"><h3>Verilerin</h3><p>Kayıtlarını yedekle, yedekten geri yükle veya ilerlemeni sıfırla.</p></div>
+            <div class="data-actions full-action">
+              <button class="secondary-btn" id="exportData" type="button">Yedeği indir (.json)</button>
+              <button class="secondary-btn" id="importData" type="button">Yedeği yükle (.json)</button>
+              <input id="importFile" type="file" accept=".json,application/json" hidden>
+            </div>
+            <div class="import-confirm hidden" id="importConfirm">
+              <h4>Yedek yüklensin mi?</h4><p id="importSummary"></p><p>Şu anki tüm kayıtların bu yedektekilerle değiştirilecek.</p>
+              <div><button class="secondary-btn" id="cancelImport" type="button">Vazgeç</button><button class="primary-btn compact" id="confirmImport" type="button">Yedeği yükle</button></div>
+            </div>
             <div class="danger-zone">
               <h4>İlerlemeyi sıfırla</h4><p>Görevler, çalışma geçmişi, tekrarlar, değerlendirmeler ve denemeler silinir. Tema ve sayaç ayarların korunur.</p>
               <button class="danger-btn" id="showReset" type="button">İlerlemeyi sıfırla…</button>
@@ -336,7 +366,21 @@
       <div class="form-actions"><button type="button" class="secondary-btn" id="skipRecall">Şimdi değil</button><button class="primary-btn compact" type="submit">Yarına tekrarla</button></div>
     </form>
   </div>
+  <div class="modal-backdrop hidden" id="syncConflict" role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle">
+    <div class="modal-card sync-conflict-card">
+      <p class="section-kicker">BULUT EŞİTLEME</p>
+      <h3 id="syncConflictTitle">Hangi veriler kullanılsın?</h3>
+      <p>Bu cihazdaki veriler buluttakilerden farklı. Seçtiğin taraf diğerinin yerine geçecek.</p>
+      <div class="conflict-options">
+        <div><strong>Buluttaki</strong><span id="conflictRemote"></span></div>
+        <div><strong>Bu cihazdaki</strong><span id="conflictLocal"></span></div>
+      </div>
+      <button class="secondary-btn conflict-backup" id="conflictBackup" type="button">Önce bu cihazdakinin yedeğini indir</button>
+      <div class="form-actions"><button class="secondary-btn" id="keepLocal" type="button">Bu cihazdakini kullan</button><button class="primary-btn compact" id="keepRemote" type="button">Buluttakini kullan</button></div>
+    </div>
+  </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
+  <script type="module" src="sync.js"></script>
 </body>
 </html>

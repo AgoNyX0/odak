@@ -26,7 +26,7 @@ try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || seed; } catch { s
 state.tasks ||= []; state.sessions ||= []; state.exams ||= []; state.errorEntries ||= []; state.reviewItems ||= []; state.reviewHistory ||= []; state.weeklyReviews ||= []; state.programCompleted ||= {}; state.dailyTarget ||= 120; state.examTarget ||= 90;
 state.dataVersion = 2;
 state.settings = {...seed.settings,...(state.settings||{})};
-const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); window.odakSync?.changed(); };
 
 const $ = s => document.querySelector(s);
 const taskList=$('#taskList'), taskForm=$('#taskForm'), timerSubject=$('#timerSubject');
@@ -470,6 +470,20 @@ $('#dailyTargetSetting').onchange=e=>{state.dailyTarget=Math.max(15,Math.min(720
 $('#closeSettings').onclick=e=>{e.preventDefault();location.hash=previousView;};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.dataset.view==='settings')location.hash=previousView;});
 $('#exportData').onclick=()=>{const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`calisma-yedegi-${todayKey()}.json`;a.click();URL.revokeObjectURL(url);toast('Yedek indirildi');};
+$('#importData').onclick=()=>$('#importFile').click();
+$('#importFile').onchange=async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  let data;
+  try{const parsed=JSON.parse(await file.text());data=parsed&&parsed.data?parsed.data:parsed;}catch{toast('Dosya okunamadı: geçerli bir JSON değil');return;}
+  if(!data||typeof data!=='object'||Array.isArray(data)||!['tasks','sessions','exams','settings'].some(k=>k in data)){toast('Bu dosya bir çalışma yedeği değil');return;}
+  pendingImport=data;
+  const count=k=>Array.isArray(data[k])?data[k].length:0;
+  $('#importSummary').textContent=`${file.name}: ${count('tasks')} görev, ${count('sessions')} çalışma oturumu, ${count('exams')} deneme, ${count('reviewItems')} tekrar.`;
+  $('#importConfirm').classList.remove('hidden');$('#confirmImport').focus();
+};
+let pendingImport=null;
+$('#cancelImport').onclick=()=>{pendingImport=null;$('#importConfirm').classList.add('hidden');};
+$('#confirmImport').onclick=()=>{if(!pendingImport)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(pendingImport));location.reload();};
 $('#showReset').onclick=()=>{$('#resetConfirm').classList.remove('hidden');$('#resetText').focus();};
 $('#cancelReset').onclick=()=>{$('#resetConfirm').classList.add('hidden');$('#resetText').value='';$('#confirmReset').disabled=true;};
 $('#resetText').oninput=e=>$('#confirmReset').disabled=e.target.value.trim().toLocaleUpperCase('tr-TR')!=='SIFIRLA';
