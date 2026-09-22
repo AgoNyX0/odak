@@ -149,6 +149,7 @@ function renderAuth() {
   $('#syncSignedOut').classList.toggle('hidden', !!user);
   $('#syncSignedIn').classList.toggle('hidden', !user);
   $('#syncPasswordForm').classList.add('hidden');
+  $('#deleteAccountForm').classList.add('hidden');
   if (user) $('#syncUser').textContent = user.email;
   else setStatus('Giriş yapmadın; veriler sadece bu tarayıcıda.');
 }
@@ -223,6 +224,46 @@ function bindAuthForm() {
         ? 'Şifren değiştirildi, ancak diğer cihazlardaki oturumlar kapatılamadı. Diğer cihazlarda elle çıkış yap.'
         : 'Şifren değiştirildi ve diğer cihazlardaki oturumlar kapatıldı. Oralarda yeni şifrenle tekrar giriş yap.', others.error ? 'error' : 'ok');
     } finally {
+      button.disabled = false;
+    }
+  };
+  const deleteForm = $('#deleteAccountForm');
+  const closeDeleteForm = () => { deleteForm.reset(); deleteForm.classList.add('hidden'); $('#confirmDeleteAccount').disabled = true; };
+  $('#showDeleteAccount').onclick = () => { deleteForm.classList.remove('hidden'); $('#deleteAccountPassword').focus(); };
+  $('#cancelDeleteAccount').onclick = closeDeleteForm;
+  $('#deleteAccountText').oninput = e => {
+    // Türkçe klavyesi olmayanlar "SIL" yazabilir.
+    $('#confirmDeleteAccount').disabled = !['SİL', 'SIL'].includes(e.target.value.trim().toLocaleUpperCase('tr-TR'));
+  };
+  deleteForm.onsubmit = async event => {
+    event.preventDefault();
+    const button = $('#confirmDeleteAccount');
+    button.disabled = true;
+    setStatus('Mevcut şifre doğrulanıyor…');
+    try {
+      const check = await supabase.auth.signInWithPassword({ email: user.email, password: $('#deleteAccountPassword').value });
+      if (check.error) {
+        const wrong = /invalid login credentials/i.test(check.error.message || '');
+        setStatus(wrong ? 'Mevcut şifre yanlış; hesap silinmedi.' : `Hesap silinemedi: ${authErrorText(check.error)}`, 'error');
+        button.disabled = false;
+        return;
+      }
+      setStatus('Hesap siliniyor…');
+      const { error } = await supabase.rpc('delete_my_account');
+      if (error) {
+        const missing = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');
+        setStatus(missing ? 'Hesap silme henüz sunucuda ayarlanmadı (supabase/hesap-sil.sql çalıştırılmalı). Hesap silinmedi.' : `Hesap silinemedi: ${errorText(error)}`, 'error');
+        button.disabled = false;
+        return;
+      }
+      clearTimeout(timer);
+      localStorage.removeItem(META_KEY);
+      localStorage.removeItem(PREVIOUS_KEY);
+      await supabase.auth.signOut({ scope: 'local' });
+      closeDeleteForm();
+      setStatus('Hesabın ve buluttaki verilerin silindi. Bu tarayıcıdaki kopya duruyor; istersen "İlerlemeyi sıfırla" ile onu da silebilirsin.', 'ok');
+    } catch (error) {
+      setStatus(`Hesap silinemedi: ${errorText(error)}`, 'error');
       button.disabled = false;
     }
   };
