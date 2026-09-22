@@ -34,6 +34,12 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 .import-confirm p{color:var(--muted);font-size:.8rem;margin:6px 0}
 .import-confirm>div{display:flex;gap:9px;margin-top:10px}
 .settings-card.sync-card,.settings-card.account-card{grid-column:1/-1}
+/* Dar ekranda sol menüdeki logo (Ayarlar girişi) gizleniyor; yerine üst çubukta ayarlar düğmesi. */
+.mobile-settings-btn{display:none}
+@media(max-width:700px){
+  .mobile-settings-btn{display:grid;place-items:center;flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);text-decoration:none;font-size:1.3rem;line-height:1}
+  .mobile-settings-btn.active{border-color:var(--primary);color:var(--primary-2)}
+}
 .sync-status,.sync-forms{grid-column:1/-1}
 .sync-status{margin:14px 0 4px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--muted) 10%,transparent);color:var(--muted);font-size:.82rem;line-height:1.45}
 .sync-status[data-tone="ok"]{color:#4fd1a5;background:rgba(79,209,165,.09)}
