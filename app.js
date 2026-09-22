@@ -192,6 +192,7 @@ function renderProgram(){
   $('#programBody').classList.toggle('hidden',!hasProgram);
   $('#programEmptyState').classList.toggle('hidden',hasProgram);
   $('#jumpProgramDay').classList.toggle('hidden',!hasProgram);
+  $('#openBuilder').classList.toggle('hidden',!hasProgram);
   $('#programKicker').textContent=hasProgram&&state.program.kicker?state.program.kicker:'ÇALIŞMA PROGRAMI';
   $('#programDescription').textContent=hasProgram?programSummary(PROGRAM_DAYS):'';
   $('#programLegend').textContent=hasProgram?(state.program.legend||''):'';
@@ -229,11 +230,12 @@ function renderProgram(){
     const date=dateFromKey(day.date),isToday=day.date===today,isNext=day.day===focusDay.day&&todayIndex<0;
     const dateText=date.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'short'});
     const done=programDayDone(day);
-    const dayVideoCount=day.items.reduce((sum,item)=>sum+item.videoCount,0);
-    const dayDuration=day.items.reduce((sum,item)=>sum+item.durationSeconds,0);
+    const dayVideoCount=day.items.reduce((sum,item)=>sum+(item.videoCount||0),0);
+    const dayDuration=day.items.reduce((sum,item)=>sum+(item.durationSeconds||0),0);
+    const dayMeta=[day.items.length?`${day.items.length} çalışma`:'',dayVideoCount?`${dayVideoCount} video`:'',dayDuration?formatVideoDuration(dayDuration):''].filter(Boolean).join(' · ');
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
-      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayVideoCount} video · ${formatVideoDuration(dayDuration)}</p></div>${done?'<span class="day-done-badge">Tamamlandı</span>':''}</header>
-      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);return `<label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${escapeHTML(item.subject)} · ${escapeHTML(item.range)} · ${item.videoCount} video · ${formatVideoDuration(item.durationSeconds)}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label>`;}).join('')}</div>
+      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.day}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
+      <div class="program-day-tasks">${day.items.map((item,itemIndex)=>{const key=programTaskKey(day.day,itemIndex),checked=Boolean(state.programCompleted[key]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',item.videoCount?`${item.videoCount} video`:'',item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${key}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-remove" type="button" data-remove-item="${day.day}-${itemIndex}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);

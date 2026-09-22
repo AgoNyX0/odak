@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında dört yerde birlikte artır (styles.css, app.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260922-6" />
+  <link rel="stylesheet" href="styles.css?v=20260922-7" />
 </head>
 <body>
   <div class="shell">
@@ -110,11 +110,12 @@
         <article class="today-card program-card" id="plan" data-section="plan">
           <div class="program-heading">
             <div><p class="section-kicker" id="programKicker">ÇALIŞMA PROGRAMI</p><h2>Gün gün programın</h2><p class="view-description" id="programDescription"></p></div>
-            <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button></div>
+            <div class="program-heading-actions"><button class="secondary-btn compact" id="jumpProgramDay" type="button">Bugünün gününe git</button><button class="secondary-btn compact hidden" id="openBuilder" type="button">Programı yenile</button></div>
           </div>
           <div class="program-empty-state hidden" id="programEmptyState">
             <strong>Henüz bir çalışma programın yok.</strong>
-            <p>Program kişiye özeldir ve hesabınla birlikte saklanır. Günlük görevlerini "Bugün" ekranından ekleyebilirsin.</p>
+            <p>Hedef sınavını, konularını ve günlük temponu seç; program gün gün oluşsun. Program kişiye özeldir, hesabınla birlikte saklanır.</p>
+            <button class="primary-btn compact" id="openBuilderEmpty" type="button">Program oluştur</button>
           </div>
           <div id="programBody">
           <section class="program-overview" aria-label="Program ilerlemesi">
@@ -398,6 +399,33 @@
       <div class="form-actions"><button class="secondary-btn" id="keepLocal" type="button">Bu cihazdakini kullan</button><button class="primary-btn compact" id="keepRemote" type="button">Buluttakini kullan</button></div>
     </div>
   </div>
+  <div class="modal-backdrop hidden" id="programBuilder" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
+    <form class="modal-card builder-card" id="builderForm">
+      <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="builderTitle">Çalışma programı oluştur</h3></div><button type="button" class="close-btn" data-close-modal="programBuilder" aria-label="Pencereyi kapat">×</button></div>
+      <div class="builder-fields">
+        <label>Hedef sınav<select id="builderExam"></select></label>
+        <label>Başlangıç<input id="builderStart" type="date" required></label>
+        <label>Kaç gün<input id="builderDays" type="number" min="1" max="365" value="30" required></label>
+        <label>Günde kaç konu<input id="builderPerDay" type="number" min="1" max="6" value="2" required></label>
+        <label>Konu başına süre (dk)<input id="builderMinutes" type="number" min="10" max="300" step="5" value="45" required></label>
+        <label>Dinlenme günü<select id="builderRest"><option value="">Yok</option><option value="1">Pazartesi</option><option value="2">Salı</option><option value="3">Çarşamba</option><option value="4">Perşembe</option><option value="5">Cuma</option><option value="6">Cumartesi</option><option value="0">Pazar</option></select></label>
+      </div>
+      <div class="builder-subjects-head"><strong>Dersler ve konular</strong><span id="builderSelectedCount">0 konu seçildi</span></div>
+      <div class="builder-subjects" id="builderSubjects"></div>
+      <p class="builder-summary" id="builderSummary"></p>
+      <p class="form-error hidden" id="builderError" role="alert"></p>
+      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="programBuilder">Vazgeç</button><button class="primary-btn compact" type="submit" id="builderSubmit">Programı oluştur</button></div>
+    </form>
+  </div>
+  <div class="modal-backdrop hidden" id="programItemDialog" role="dialog" aria-modal="true" aria-labelledby="programItemTitle">
+    <form class="modal-card" id="programItemForm">
+      <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="programItemTitle">Güne çalışma ekle</h3></div><button type="button" class="close-btn" data-close-modal="programItemDialog" aria-label="Pencereyi kapat">×</button></div>
+      <div class="modal-row"><label>Ders<select id="programItemSubject" required></select></label><label>Süre (dk)<input id="programItemMinutes" type="number" min="5" max="300" step="5" value="45" required></label></div>
+      <label>Konu<input id="programItemTopic" maxlength="80" placeholder="Örn. Üslü Sayılar" required></label>
+      <label>Not <span>(isteğe bağlı)</span><input id="programItemPractice" maxlength="90" placeholder="Örn. SB Test 3 · s. 24"></label>
+      <div class="form-actions"><button type="button" class="secondary-btn" data-close-modal="programItemDialog">Vazgeç</button><button class="primary-btn compact" type="submit">Ekle</button></div>
+    </form>
+  </div>
   <div class="modal-backdrop hidden" id="personalViewer" role="dialog" aria-modal="true" aria-label="Kişisel dosya">
     <div class="personal-viewer-card">
       <div class="personal-viewer-head"><strong id="personalViewerTitle">Hata defteri</strong><button type="button" class="secondary-btn" id="closePersonalViewer">Kapat ✕</button></div>
@@ -405,7 +433,9 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="app.js?v=20260922-6"></script>
-  <script type="module" src="sync.js?v=20260922-6"></script>
+  <script src="curriculum.js?v=20260922-7"></script>
+  <script src="app.js?v=20260922-7"></script>
+  <script src="program-builder.js?v=20260922-7"></script>
+  <script type="module" src="sync.js?v=20260922-7"></script>
 </body>
 </html>
