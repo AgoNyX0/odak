@@ -519,9 +519,20 @@ let pendingImport=null;
 $('#cancelImport').onclick=()=>{pendingImport=null;$('#importConfirm').classList.add('hidden');};
 $('#confirmImport').onclick=()=>{if(!pendingImport)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(pendingImport));location.reload();};
 $('#showReset').onclick=()=>{$('#resetConfirm').classList.remove('hidden');$('#resetText').focus();};
-$('#cancelReset').onclick=()=>{$('#resetConfirm').classList.add('hidden');$('#resetText').value='';$('#confirmReset').disabled=true;};
+$('#cancelReset').onclick=()=>{$('#resetConfirm').classList.add('hidden');$('#resetText').value='';$('#confirmReset').disabled=true;$('#resetProgress').checked=true;$('#resetProgram').checked=true;$('#resetPacks').checked=false;};
 $('#resetText').oninput=e=>$('#confirmReset').disabled=e.target.value.trim().toLocaleUpperCase('tr-TR')!=='SIFIRLA';
-$('#confirmReset').onclick=()=>{state.tasks=[];state.sessions=[];state.exams=[];state.errorEntries=[];state.reviewItems=[];state.reviewHistory=[];state.weeklyReviews=[];state.programCompleted={};save();render();$('#cancelReset').click();toast('İlerleme sıfırlandı');location.hash='today';};
+$('#confirmReset').onclick=()=>{
+  const parts=[];
+  if($('#resetProgress').checked){state.tasks=[];state.sessions=[];state.exams=[];state.errorEntries=[];state.reviewItems=[];state.reviewHistory=[];state.weeklyReviews=[];parts.push('ilerleme kayıtları');}
+  if($('#resetProgram').checked){state.program=null;state.programCompleted={};parts.push('program');}
+  // Program kalsın ama ilerleme sıfırlansın denmişse, tamamlanma işaretleri de ilerlemedir: onlar da gider.
+  else if($('#resetProgress').checked){state.programCompleted={};}
+  if($('#resetPacks').checked){state.mistakePacks=[];parts.push('hata defteri kartları');}
+  if(!parts.length){toast('Silinecek bir şey seçmedin');return;}
+  save();render();$('#cancelReset').click();
+  toast(`Silindi: ${parts.join(', ')}`);
+  location.hash='today';
+};
 
 const examNet=(correct,wrong)=>Number((correct-wrong/4).toFixed(2));
 const formatNet=value=>Number(value).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
