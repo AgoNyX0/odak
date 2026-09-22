@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-8';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-9';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}

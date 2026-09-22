@@ -121,7 +121,15 @@
   fillTopics();
   syncTypeFields();
 
-  $('#entrySubject').onchange = fillTopics;
+  // Ders değişince eski konu yazısı kalmasın: öneri listesi ona takılıyor ve kullanıcı elle silmek zorunda kalıyordu.
+  $('#entrySubject').onchange = () => {
+    $('#entryTopic').value = '';
+    fillTopics();
+    $('#entryTopic').focus();
+  };
+  // Kutuya dokununca mevcut yazı seçili gelsin; yazmaya başlayınca kendiliğinden değişir.
+  // Tarayıcı odaklanmanın hemen ardından seçimi sıfırlıyor; bir tik sonra seç.
+  $('#entryTopic').addEventListener('focus', event => setTimeout(() => event.target.select(), 0));
   $('#entryType').onchange = syncTypeFields;
   $('#entryRepeat').onchange = updateRepeatNote;
   ['#entryRepeatEvery', '#entryRepeatCount', '#entryDate'].forEach(id => $(id).addEventListener('input', updateRepeatNote));
