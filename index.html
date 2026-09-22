@@ -319,6 +319,7 @@
                 <p><span>Giriş yapıldı:</span> <strong id="syncUser"></strong></p>
                 <div><button class="secondary-btn" id="syncNow" type="button">Şimdi eşitle</button><button class="secondary-btn" id="syncShowPassword" type="button">Şifreyi değiştir</button><button class="secondary-btn" id="syncSignOut" type="button">Çıkış yap</button></div>
                 <form class="sync-form hidden" id="syncPasswordForm">
+                  <label>Mevcut şifre<input id="syncCurrentPassword" type="password" autocomplete="current-password" required></label>
                   <label>Yeni şifre<input id="syncNewPassword" type="password" autocomplete="new-password" minlength="6" required></label>
                   <label>Yeni şifre (tekrar)<input id="syncNewPassword2" type="password" autocomplete="new-password" minlength="6" required></label>
                   <div class="sync-auth-actions"><button class="primary-btn compact" id="syncSavePassword" type="submit">Kaydet</button><button class="secondary-btn" id="syncCancelPassword" type="button">Vazgeç</button></div>

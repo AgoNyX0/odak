@@ -191,27 +191,45 @@ function bindAuthForm() {
   $('#syncNow').onclick = () => sync();
   const passwordForm = $('#syncPasswordForm');
   const closePasswordForm = () => { passwordForm.reset(); passwordForm.classList.add('hidden'); };
-  $('#syncShowPassword').onclick = () => { passwordForm.classList.remove('hidden'); $('#syncNewPassword').focus(); };
+  $('#syncShowPassword').onclick = () => { passwordForm.classList.remove('hidden'); $('#syncCurrentPassword').focus(); };
   $('#syncCancelPassword').onclick = closePasswordForm;
   passwordForm.onsubmit = async event => {
     event.preventDefault();
+    const current = $('#syncCurrentPassword').value;
     const password = $('#syncNewPassword').value;
     if (password !== $('#syncNewPassword2').value) { setStatus('Yeni şifreler birbiriyle aynı değil.', 'error'); return; }
+    if (password === current) { setStatus('Yeni şifre eskisiyle aynı olamaz.', 'error'); return; }
     const button = $('#syncSavePassword');
     button.disabled = true;
-    const { error } = await supabase.auth.updateUser({ password });
-    button.disabled = false;
-    if (error) {
-      const same = /different from the old|same/i.test(error.message || '');
-      setStatus(`Şifre değiştirilemedi: ${same ? 'Yeni şifre eskisiyle aynı olamaz.' : authErrorText(error)}`, 'error');
-      return;
+    setStatus('Mevcut şifre doğrulanıyor…');
+    try {
+      // Açık bırakılmış bir oturumla şifrenin değiştirilmesini önlemek için önce mevcut şifreyi doğrula.
+      const check = await supabase.auth.signInWithPassword({ email: user.email, password: current });
+      if (check.error) {
+        const wrong = /invalid login credentials/i.test(check.error.message || '');
+        setStatus(wrong ? 'Mevcut şifre yanlış; şifre değiştirilmedi.' : `Şifre değiştirilemedi: ${authErrorText(check.error)}`, 'error');
+        return;
+      }
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        const same = /different from the old|same/i.test(error.message || '');
+        setStatus(`Şifre değiştirilemedi: ${same ? 'Yeni şifre eskisiyle aynı olamaz.' : authErrorText(error)}`, 'error');
+        return;
+      }
+      closePasswordForm();
+      // Supabase diğer oturumları kendiliğinden kapatmıyor; hesabı ele geçiren biri varsa oturumu düşsün.
+      const others = await supabase.auth.signOut({ scope: 'others' });
+      setStatus(others.error
+        ? 'Şifren değiştirildi, ancak diğer cihazlardaki oturumlar kapatılamadı. Diğer cihazlarda elle çıkış yap.'
+        : 'Şifren değiştirildi ve diğer cihazlardaki oturumlar kapatıldı. Oralarda yeni şifrenle tekrar giriş yap.', others.error ? 'error' : 'ok');
+    } finally {
+      button.disabled = false;
     }
-    closePasswordForm();
-    setStatus('Şifren değiştirildi. Diğer cihazlarda bir sonraki girişte yeni şifreyi kullan.', 'ok');
   };
   $('#syncSignOut').onclick = async () => {
-    await supabase.auth.signOut();
-    setStatus('Çıkış yapıldı. Veriler bu tarayıcıda kalmaya devam ediyor.');
+    // Varsayılan 'global' kapsam tüm cihazlardan çıkarır; sadece bu cihazdan çık.
+    await supabase.auth.signOut({ scope: 'local' });
+    setStatus('Bu cihazda çıkış yapıldı. Veriler bu tarayıcıda kalmaya devam ediyor.');
   };
 }
 
