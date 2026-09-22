@@ -37,8 +37,12 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 /* Dar ekranda sol menüdeki logo (Ayarlar girişi) gizleniyor; yerine üst çubukta ayarlar düğmesi. */
 .mobile-settings-btn{display:none}
 @media(max-width:700px){
-  .mobile-settings-btn{display:grid;place-items:center;flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);text-decoration:none;font-size:1.3rem;line-height:1}
-  .mobile-settings-btn.active{border-color:var(--primary);color:var(--primary-2)}
+  .mobile-settings-btn{display:grid;place-items:center;flex:none;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:#fff;text-decoration:none;-webkit-tap-highlight-color:transparent}
+  .mobile-settings-btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .mobile-settings-btn.active{border-color:rgba(255,255,255,.45);background:#1d2542}
+  .mobile-settings-btn:focus-visible{outline:2px solid rgba(255,255,255,.6)}
+  body[data-theme="light"] .mobile-settings-btn{color:var(--text)}
+  body[data-theme="light"] .mobile-settings-btn.active{border-color:var(--text);background:#eef1f8}
 }
 .sync-status,.sync-forms{grid-column:1/-1}
 .sync-status{margin:14px 0 4px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--muted) 10%,transparent);color:var(--muted);font-size:.82rem;line-height:1.45}
