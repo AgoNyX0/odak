@@ -40,6 +40,7 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 .sync-status[data-tone="error"]{color:#ff9aa7;background:rgba(255,93,115,.08)}
 .sync-form{display:flex;align-items:flex-end;gap:10px;margin-top:10px;flex-wrap:wrap}
 .sync-auth-actions{display:flex;gap:9px;flex-wrap:wrap}
+.sync-form .form-message{flex:1 1 100%;margin:0}
 .sync-form label{flex:1 1 200px;display:block;color:var(--muted);font-size:.8rem}
 .sync-form input{display:block;width:100%;margin-top:6px;background:#10162a;border:1px solid #343e60;color:var(--text);border-radius:10px;padding:10px 11px;outline:none}
 .sync-form input:focus{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 18%,transparent)}

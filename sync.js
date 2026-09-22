@@ -229,7 +229,14 @@ function bindAuthForm() {
     }
   };
   const deleteForm = $('#deleteAccountForm');
-  const closeDeleteForm = () => { deleteForm.reset(); deleteForm.classList.add('hidden'); $('#confirmDeleteAccount').disabled = true; };
+  // Hesap kartı sayfanın en altında; mesajı üstteki durum satırı yerine formun içinde göster.
+  const deleteStatus = (text, tone = '') => {
+    const el = $('#deleteAccountStatus');
+    el.textContent = text;
+    el.dataset.tone = tone;
+    el.classList.toggle('hidden', !text);
+  };
+  const closeDeleteForm = () => { deleteForm.reset(); deleteForm.classList.add('hidden'); deleteStatus(''); $('#confirmDeleteAccount').disabled = true; };
   $('#showDeleteAccount').onclick = () => { deleteForm.classList.remove('hidden'); $('#deleteAccountPassword').focus(); };
   $('#cancelDeleteAccount').onclick = closeDeleteForm;
   $('#deleteAccountText').oninput = e => {
@@ -239,21 +246,23 @@ function bindAuthForm() {
   deleteForm.onsubmit = async event => {
     event.preventDefault();
     const button = $('#confirmDeleteAccount');
+    const passwordInput = $('#deleteAccountPassword');
     button.disabled = true;
-    setStatus('Mevcut şifre doğrulanıyor…');
+    deleteStatus('Mevcut şifre doğrulanıyor…');
     try {
-      const check = await supabase.auth.signInWithPassword({ email: user.email, password: $('#deleteAccountPassword').value });
+      const check = await supabase.auth.signInWithPassword({ email: user.email, password: passwordInput.value });
       if (check.error) {
         const wrong = /invalid login credentials/i.test(check.error.message || '');
-        setStatus(wrong ? 'Mevcut şifre yanlış; hesap silinmedi.' : `Hesap silinemedi: ${authErrorText(check.error)}`, 'error');
+        deleteStatus(wrong ? 'Şifre yanlış. Hesabın silinmedi; şifreni kontrol edip tekrar dene.' : `Hesap silinemedi: ${authErrorText(check.error)}`, 'error');
+        if (wrong) { passwordInput.focus(); passwordInput.select(); }
         button.disabled = false;
         return;
       }
-      setStatus('Hesap siliniyor…');
+      deleteStatus('Hesap siliniyor…');
       const { error } = await supabase.rpc('delete_my_account');
       if (error) {
         const missing = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');
-        setStatus(missing ? 'Hesap silme henüz sunucuda ayarlanmadı (supabase/hesap-sil.sql çalıştırılmalı). Hesap silinmedi.' : `Hesap silinemedi: ${errorText(error)}`, 'error');
+        deleteStatus(missing ? 'Hesap silme henüz sunucuda ayarlanmadı (supabase/hesap-sil.sql çalıştırılmalı). Hesap silinmedi.' : `Hesap silinemedi: ${errorText(error)}`, 'error');
         button.disabled = false;
         return;
       }
@@ -262,9 +271,12 @@ function bindAuthForm() {
       localStorage.removeItem(PREVIOUS_KEY);
       await supabase.auth.signOut({ scope: 'local' });
       closeDeleteForm();
+      // Hesap kartı artık gizli; kullanıcı sonucu görebilsin diye durum satırına kaydır.
+      $('.sync-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.toast?.('Hesabın silindi');
       setStatus('Hesabın ve buluttaki verilerin silindi. Bu tarayıcıdaki kopya duruyor; istersen "İlerlemeyi sıfırla" ile onu da silebilirsin.', 'ok');
     } catch (error) {
-      setStatus(`Hesap silinemedi: ${errorText(error)}`, 'error');
+      deleteStatus(`Hesap silinemedi: ${errorText(error)}`, 'error');
       button.disabled = false;
     }
   };
