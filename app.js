@@ -248,7 +248,7 @@ function render(){
   $('#doneCount').textContent=`${done} görev`; $('#doneDetail').textContent=`Planının %${pct}'i`;
   const plannedMinutes=renderCapacity();
   $('#todayOverviewSummary').textContent=`${todays.length} görev · ${plannedMinutes} / ${state.dailyTarget} dk planlandı`;
-  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).slice(0,4).map(t=>{const meta=subjectMeta(t.subject);return `<div class="preview-task"><i style="--lesson-color:${meta.color}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(meta.name)} · ${t.minutes} dk</small></span></div>`;}).join('');
+  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).map(t=>{const meta=subjectMeta(t.subject);return `<div class="preview-task"><i style="--lesson-color:${meta.color}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(meta.name)} · ${t.minutes} dk</small></span><button class="delete-task preview-delete" type="button" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil" title="Görevi sil">×</button></div>`;}).join('');
   $('#emptyTodayPreview').textContent=todays.length?'Bugünün tüm görevleri tamamlandı.':'Bugün için görev yok. Planına küçük bir hedef ekle.';
   $('#emptyTodayPreview').classList.toggle('hidden',todays.some(t=>!t.done));
 
@@ -306,6 +306,7 @@ function handleTaskChange(e){if(e.target.matches('.task-check')){const t=state.t
 function handleTaskClick(e){const id=e.target.dataset.delete;if(id){const task=state.tasks.find(t=>t.id===id);if(task?.source?.type==='exam-error')state.errorEntries.forEach(entry=>{if(task.source.errorIds.includes(entry.id)){entry.status='open';entry.taskId=null;entry.reviewedAt=null;}});state.tasks=state.tasks.filter(t=>t.id!==id);render();return;}const subject=e.target.dataset.subject;if(subject){showForm();$('#taskSubject').value=subject;}}
 taskList.addEventListener('change',handleTaskChange);taskList.addEventListener('click',handleTaskClick);
 $('#subjectGrid').addEventListener('change',handleTaskChange);$('#subjectGrid').addEventListener('click',handleTaskClick);
+$('#todayPreviewList').addEventListener('click',e=>{if(e.target.dataset.delete){handleTaskClick(e);toast('Görev silindi');}});
 function showForm(){taskForm.classList.remove('hidden');$('#taskTitle').focus();}
 $('#openTaskForm').onclick=showForm; $('#emptyAdd').onclick=showForm;
 $('#todayAddTask').onclick=()=>{location.hash='plan';setTimeout(showForm,80);};
