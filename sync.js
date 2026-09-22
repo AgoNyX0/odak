@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-2';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-3';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -212,10 +212,13 @@ function bindAuthForm() {
         setStatus(wrong ? 'Mevcut şifre yanlış; şifre değiştirilmedi.' : `Şifre değiştirilemedi: ${authErrorText(check.error)}`, 'error');
         return;
       }
-      const { error } = await supabase.auth.updateUser({ password });
+      // current_password: Supabase'te "mevcut şifre zorunlu" ayarı açıksa kontrol sunucuda da yapılır
+      // (eski/önbellekteki bir sayfa ya da doğrudan API isteği bu adımı atlayamaz).
+      const { error } = await supabase.auth.updateUser({ password, current_password: current });
       if (error) {
-        const same = /different from the old|same/i.test(error.message || '');
-        setStatus(`Şifre değiştirilemedi: ${same ? 'Yeni şifre eskisiyle aynı olamaz.' : authErrorText(error)}`, 'error');
+        const same = error.code === 'same_password' || /different from the old|same/i.test(error.message || '');
+        const wrong = error.code === 'current_password_invalid' || error.code === 'current_password_required';
+        setStatus(`Şifre değiştirilemedi: ${same ? 'Yeni şifre eskisiyle aynı olamaz.' : wrong ? 'Mevcut şifre yanlış.' : authErrorText(error)}`, 'error');
         return;
       }
       closePasswordForm();
