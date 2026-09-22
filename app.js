@@ -22,6 +22,14 @@ try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || seed; } catch { s
 state.tasks ||= []; state.sessions ||= []; state.exams ||= []; state.errorEntries ||= []; state.reviewItems ||= []; state.reviewHistory ||= []; state.weeklyReviews ||= []; state.programCompleted ||= {}; state.dailyTarget ||= 120; state.examTarget ||= 90;
 state.dataVersion = 2;
 state.settings = {...seed.settings,...(state.settings||{})};
+// Eski sürüm her yeni kullanıcıya örnek görevler ve bir örnek oturum ekliyordu; birebir eşleşenleri bir kez temizle.
+if(!state.seedSamplesCleaned){
+  const SEED_TASKS=[['Trigonometri konu tekrarı','Matematik',40],['Hücre bölünmesi soru çözümü','Biyoloji',30],['Paragraf denemesi','Türkçe',25]];
+  state.tasks=state.tasks.filter(t=>t.source||!SEED_TASKS.some(([title,subject,minutes])=>t.title===title&&t.subject===subject&&t.minutes===minutes));
+  state.sessions=state.sessions.filter(s=>!(s.subject==='Türkçe'&&s.minutes===25&&s.time==='09:20'&&Object.keys(s).sort().join()==='date,id,minutes,subject,time'));
+  state.seedSamplesCleaned=true;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
 const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); window.odakSync?.changed(); };
 
 const $ = s => document.querySelector(s);
