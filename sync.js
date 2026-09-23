@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-3';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-4';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -108,7 +108,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#perso
 
 async function listPersonalFiles(prefix) {
   const { data, error } = await supabase.storage.from(PERSONAL_BUCKET).list(prefix, { limit: 1000 });
-  if (error || !data) return [];
+  if (error) throw error; // sessizce "dosya yok" sayma: hesap silme dosyaları geride bırakırdı
+  if (!data) return [];
   const paths = [];
   for (const entry of data) {
     const full = `${prefix}/${entry.name}`;
@@ -360,7 +361,11 @@ function bindAuthForm() {
       deleteStatus('Hesap siliniyor…');
       // Depolama dosyaları hesapla birlikte otomatik silinmiyor; önce kişisel klasörü boşalt.
       const files = await listPersonalFiles(user.id);
-      if (files.length) await supabase.storage.from(PERSONAL_BUCKET).remove(files);
+      if (files.length) {
+        const { error: removeError } = await supabase.storage.from(PERSONAL_BUCKET).remove(files);
+        // Dosyalar silinemezse hesabı silme; yoksa dosyalar sahipsiz kalır.
+        if (removeError) { deleteStatus(`Kişisel dosyaların silinemedi, hesap silinmedi: ${errorText(removeError)}`, 'error'); button.disabled = false; return; }
+      }
       const { error } = await supabase.rpc('delete_my_account');
       if (error) {
         const missing = error.code === 'PGRST202' || /could not find the function/i.test(error.message || '');
@@ -403,7 +408,8 @@ async function main() {
     return;
   }
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    // Sürüm sabit: yeni bir 2.x yayını (ya da ele geçirilmiş bir yayın) habersiz çalışmasın. Güncellerken test et.
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.0/+esm');
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'odak-auth' },
     });

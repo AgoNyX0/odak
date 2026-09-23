@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260923-3" />
+  <link rel="stylesheet" href="styles.css?v=20260923-4" />
 </head>
 <body>
   <div class="shell">
@@ -52,7 +52,7 @@
 
       <section class="today-overview view-section" data-section="today">
         <article class="today-hero panel">
-          <div><p class="section-kicker">BUGÜN</p><h2>Planın hazır.</h2><p id="todayOverviewSummary">0 görev · 0 dk</p></div>
+          <div><p class="section-kicker">BUGÜN</p><h2 id="todayHeroTitle">Bugünün planı</h2><p id="todayOverviewSummary">0 görev · 0 dk</p></div>
           <a class="primary-btn compact action-link" href="#focus">Odaklanmaya başla</a>
         </article>
         <div class="today-action-grid">
@@ -90,7 +90,7 @@
             <span>Seçili süre</span>
             <div class="duration-stepper">
               <button id="decreaseTimerDuration" type="button" aria-label="Süreyi azalt">−</button>
-              <input id="timerDurationValue" type="number" min="5" max="180" step="5" value="25" aria-label="Seçili süre (dakika)"><span>dk</span>
+              <input id="timerDurationValue" type="number" min="1" max="180" step="1" value="25" aria-label="Seçili süre (dakika)"><span>dk</span>
               <button id="increaseTimerDuration" type="button" aria-label="Süreyi artır">＋</button>
             </div>
           </div>
@@ -122,17 +122,17 @@
           <div id="programBody">
           <section class="program-overview" aria-label="Program ilerlemesi">
             <div class="program-ring" id="programRing"><strong id="programPercent">%0</strong><span>tamamlandı</span></div>
-            <div class="program-overview-copy"><span id="programPhase">Program yarın başlıyor</span><h3 id="programProgressText">0 / 120 çalışma tamamlandı</h3><div class="program-progress-track"><i id="programProgressBar"></i></div><small id="programRemaining">60 günün seni bekliyor.</small></div>
+            <div class="program-overview-copy"><span id="programPhase"></span><h3 id="programProgressText"></h3><div class="program-progress-track"><i id="programProgressBar"></i></div><small id="programRemaining"></small></div>
             <div class="program-stat"><strong id="programDaysDone">0</strong><span>tam gün</span></div>
           </section>
           <div class="program-toolbar">
             <div class="program-filters" role="group" aria-label="Program filtresi"><button class="program-filter active" data-program-filter="all" type="button">Tüm günler</button><button class="program-filter" data-program-filter="pending" type="button">Kalanlar</button><button class="program-filter" data-program-filter="done" type="button">Tamamlananlar</button></div>
-            <div class="week-pager" aria-label="Hafta seçimi"><button class="week-arrow" data-program-week-dir="-1" type="button" aria-label="Önceki hafta">←</button><div><strong id="programWeekLabel">1. Hafta</strong><span id="programWeekDates">21–27 Eylül</span></div><button class="week-arrow" data-program-week-dir="1" type="button" aria-label="Sonraki hafta">→</button></div>
+            <div class="week-pager" aria-label="Hafta seçimi"><button class="week-arrow" data-program-week-dir="-1" type="button" aria-label="Önceki hafta">←</button><div><strong id="programWeekLabel"></strong><span id="programWeekDates"></span></div><button class="week-arrow" data-program-week-dir="1" type="button" aria-label="Sonraki hafta">→</button></div>
             <span class="program-legend"><i></i> <span id="programLegend"></span></span>
           </div>
-          <div class="program-list" id="programList" aria-live="polite"></div>
+          <div class="program-list" id="programList"></div>
           <div class="empty-sessions hidden" id="emptyProgram">Bu filtrede gösterilecek gün yok.</div>
-          <nav class="week-bottom-nav" aria-label="Hafta sayfaları"><button data-program-week-dir="-1" type="button">← Önceki hafta</button><span id="programWeekCount">1 / 9</span><button data-program-week-dir="1" type="button">Sonraki hafta →</button></nav>
+          <nav class="week-bottom-nav" aria-label="Hafta sayfaları"><button data-program-week-dir="-1" type="button">← Önceki hafta</button><span id="programWeekCount"></span><button data-program-week-dir="1" type="button">Sonraki hafta →</button></nav>
           </div>
           <div class="legacy-plan hidden" aria-hidden="true">
           <button class="add-btn" id="openTaskForm">＋ Görev ekle</button>
@@ -276,7 +276,7 @@
                 <label>Konu<input id="mistakeTopic" maxlength="60" placeholder="Örn. Problemler" required></label>
                 <label>Sonuç<select id="mistakeOutcome" required><option value="wrong">Yanlış</option><option value="blank">Boş</option></select></label>
                 <label>Neden<select id="mistakeReason" required><option value="knowledge">Bilgi eksiği</option><option value="method">Yöntem</option><option value="calculation">İşlem</option><option value="attention">Dikkat</option><option value="time">Süre</option></select></label>
-                <label>Adet<input id="mistakeCount" type="number" min="1" max="50" value="1" required></label>
+                <label>Adet<input id="mistakeCount" type="number" min="1" max="200" value="1" required></label>
                 <label class="mistake-note">Kısa not <span>(isteğe bağlı)</span><input id="mistakeNote" maxlength="120" placeholder="Neyi karıştırdın?"></label>
               </div>
               <p class="form-error hidden" id="mistakeError" role="alert"></p>
@@ -296,8 +296,8 @@
         <div class="settings-grid">
           <article class="panel settings-card">
             <div class="settings-icon">◐</div><div class="settings-copy"><h3>Görünüm</h3><p>Renkleri ve hareketleri sana uygun hâle getir.</p></div>
-            <div class="setting-control full"><span class="control-label">Tema</span><div class="segmented" id="themeChoices" role="radiogroup" aria-label="Tema"><button type="button" data-theme="dark">Koyu</button><button type="button" data-theme="light">Açık</button></div></div>
-            <div class="setting-control full"><span class="control-label">Vurgu rengi</span><div class="color-choices" id="accentChoices" role="radiogroup" aria-label="Vurgu rengi"><button type="button" data-accent="indigo" style="--swatch:#6c7cff" aria-label="İndigo">✓</button><button type="button" data-accent="green" style="--swatch:#18b892" aria-label="Yeşil">✓</button><button type="button" data-accent="orange" style="--swatch:#f08b45" aria-label="Turuncu">✓</button><button type="button" data-accent="pink" style="--swatch:#e7689a" aria-label="Pembe">✓</button></div></div>
+            <div class="setting-control full"><span class="control-label">Tema</span><div class="segmented" id="themeChoices" role="radiogroup" aria-label="Tema"><button type="button" role="radio" data-theme="dark">Koyu</button><button type="button" role="radio" data-theme="light">Açık</button></div></div>
+            <div class="setting-control full"><span class="control-label">Vurgu rengi</span><div class="color-choices" id="accentChoices" role="radiogroup" aria-label="Vurgu rengi"><button type="button" role="radio" data-accent="indigo" style="--swatch:#6c7cff" aria-label="İndigo">✓</button><button type="button" role="radio" data-accent="green" style="--swatch:#18b892" aria-label="Yeşil">✓</button><button type="button" role="radio" data-accent="orange" style="--swatch:#f08b45" aria-label="Turuncu">✓</button><button type="button" role="radio" data-accent="pink" style="--swatch:#e7689a" aria-label="Pembe">✓</button></div></div>
             <label class="switch-row"><span><strong>Hareketleri azalt</strong><small>Gereksiz geçişleri ve animasyonları kapatır.</small></span><input id="reduceMotion" type="checkbox" role="switch"></label>
           </article>
           <article class="panel settings-card">
@@ -449,9 +449,9 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260923-3"></script>
-  <script src="app.js?v=20260923-3"></script>
-  <script src="program-editor.js?v=20260923-3"></script>
-  <script type="module" src="sync.js?v=20260923-3"></script>
+  <script src="curriculum.js?v=20260923-4"></script>
+  <script src="app.js?v=20260923-4"></script>
+  <script src="program-editor.js?v=20260923-4"></script>
+  <script type="module" src="sync.js?v=20260923-4"></script>
 </body>
 </html>

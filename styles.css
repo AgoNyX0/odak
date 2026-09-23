@@ -51,6 +51,20 @@ button.mistake-pack-download{background:none;cursor:pointer;font-family:inherit}
 .toast.show{pointer-events:auto}
 .toast-action{border:0;background:#11172a;color:#fff;border-radius:8px;padding:6px 11px;font:inherit;font-weight:800;cursor:pointer}
 @media(max-width:700px){.toast{bottom:88px;max-width:calc(100vw - 32px)}}
+/* Listelerde "Tümünü göster" */
+.show-more{display:block;width:100%;margin-top:10px;padding:9px;border:1px dashed var(--line);border-radius:10px;background:none;color:var(--muted);font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+.show-more:hover{color:var(--text);border-color:var(--primary)}
+/* Program çalışmalarında gizli onay kutusu: klavyeyle gelince odak görünsün. */
+.program-task:focus-within .program-check{outline:2px solid var(--primary);outline-offset:2px}
+@media(max-width:700px){
+  /* Mobilde seri gizliydi; küçük haliyle göster. Program ekranında yüzen "＋ görev" düğmesi filtrelerin üstüne biniyordu. */
+  body .topbar .topbar-actions .streak{display:flex;padding:6px 10px;gap:6px}
+  body .topbar .topbar-actions .streak small{display:none}
+  body .topbar .topbar-actions .streak div{display:grid}
+  body .topbar .topbar-actions .streak strong{display:block;font-size:.78rem;white-space:nowrap}
+  body .topbar .topbar-actions .streak>span{font-size:1.1rem}
+  body[data-view="plan"] .quick-add-btn{display:none}
+}
 /* Mobil alt menü: 6 öğe 360–390px ekrana sığsın ("Denemeler" ekran dışında kalıyordu). */
 @media(max-width:700px){
   .sidebar{padding:6px 4px}

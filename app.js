@@ -23,7 +23,7 @@ const seed = {
 const SAFE_ID=/^[A-Za-z0-9_-]{1,64}$/, DATE_RE=/^\d{4}-\d{2}-\d{2}$/, TIME_RE=/^\d{1,2}:\d{2}$/, ISO_RE=/^[0-9T:.+\-Z]{1,40}$/, WORD_RE=/^[A-Za-z-]{1,24}$/;
 const NUM_KEYS=new Set(['minutes','amount','videoCount','durationSeconds','correct','wrong','blank','net','count','stage','previousStage','nextStage','lapses','reviewCount','intervalDays','score','duration','day','dailyTarget','examTarget','focus','shortBreak','longBreak']);
 const NULLABLE_NUM=new Set(['score','duration']);
-const DATE_KEYS=new Set(['date','dueDate','nextDueDate','week','start','weekStart']);
+const DATE_KEYS=new Set(['date','dueDate','nextDueDate','doneDate','week','start','weekStart']);
 const ISO_KEYS=new Set(['createdAt','reviewedAt','lastReviewedAt','exportedAt','updatedAt']);
 const WORD_KEYS=new Set(['type','cause','outcome','status','sourceType','mode','theme','accent','kind','rating']);
 const LIST_KEYS=['tasks','sessions','exams','errorEntries','reviewItems','reviewHistory','weeklyReviews'];
@@ -133,7 +133,17 @@ const programLink=subject=>state.program?.links?.[subject]||'';
 // programWeekNeedsFocus: ilk açılışta bugünün (ya da sıradaki günün) haftasını göster.
 // programWeekTarget: program-editor bir tarih ekleyince o haftaya geç.
 let programFilter='all',programWeek=0,programWeekNeedsFocus=true,programWeekTarget=null;
-const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
+// Uzun listeler (denemeler, hata kayıtları, yaklaşan tekrarlar) kısaltılıyor ama eskilere de ulaşılabilsin.
+const listExpanded={exams:false,mistakes:false,upcoming:false};
+function moreButton(key,total,limit){
+  if(total<=limit)return '';
+  return `<button class="show-more" type="button" data-show-more="${key}">${listExpanded[key]?'Daha az göster':`Tümünü göster (${total})`}</button>`;
+}
+document.addEventListener('click',event=>{
+  const key=event.target.dataset?.showMore;
+  if(!key||!(key in listExpanded))return;
+  listExpanded[key]=!listExpanded[key];render();
+});
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
 const REASON_META={
   knowledge:{label:'Bilgi eksiği',minutes:35,task:'konu tekrarı + 10 soru'},
@@ -204,14 +214,15 @@ function renderReviews(){
   const today=todayKey();
   const active=state.reviewItems.filter(item=>item.status==='active');
   const due=active.filter(item=>item.dueDate<=today).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||a.stage-b.stage||a.createdAt.localeCompare(b.createdAt));
-  const upcoming=active.filter(item=>item.dueDate>today).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,8);
+  const upcomingAll=active.filter(item=>item.dueDate>today).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+  const upcoming=upcomingAll.slice(0,listExpanded.upcoming?Infinity:8);
   const weekStart=weekStartKey();
   const weeklyDone=state.reviewHistory.filter(entry=>localDateKey(new Date(entry.reviewedAt))>=weekStart).length;
   $('#dueReviewStat').textContent=`${due.length} tekrar`;$('#weeklyReviewStat').textContent=`${weeklyDone} tekrar`;
   $('#nextReviewStat').textContent=upcoming.length?formatShortDate(upcoming[0].dueDate):'—';
   $('#dueReviewList').innerHTML=due.map(item=>`<article class="review-item" data-review-id="${item.id}"><div class="review-item-head"><span>${escapeHTML(item.subject)}</span><small>${item.dueDate<today?'Gecikti':'Bugün'}</small></div><h3>${escapeHTML(item.topic)}</h3><p>Bakmadan bu konu hakkında neleri hatırlıyorsun?</p><textarea class="review-recall" maxlength="280" placeholder="Kısa bir cevap yazabilirsin…" aria-label="${escapeHTML(item.topic)} için hatırladıkların"></textarea><div class="review-reveal"><button class="secondary-btn" type="button" data-reveal-review="${item.id}">${item.referenceText?'Notumla karşılaştır':'Kendimi değerlendir'}</button><button class="text-btn" type="button" data-snooze-review="${item.id}">Yarına ertele</button></div><div class="review-answer hidden" data-review-answer="${item.id}"><p>${item.referenceText?escapeHTML(item.referenceText):'Kendi hatırlamana göre değerlendir.'}</p><div class="rating-row"><button type="button" data-rate-review="${item.id}" data-rating="forgot">Unuttum</button><button type="button" data-rate-review="${item.id}" data-rating="hard">Zorlandım</button><button type="button" data-rate-review="${item.id}" data-rating="remembered">Hatırladım</button></div></div></article>`).join('');
   $('#emptyDueReviews').classList.toggle('hidden',due.length>0);
-  $('#upcomingReviewList').innerHTML=upcoming.map(item=>`<div class="upcoming-review"><span><strong>${escapeHTML(item.topic)}</strong><small>${escapeHTML(item.subject)}</small></span><time datetime="${item.dueDate}">${formatShortDate(item.dueDate)}</time><button type="button" data-archive-review="${item.id}" aria-label="${escapeHTML(item.topic)} tekrarını arşivle">×</button></div>`).join('');
+  $('#upcomingReviewList').innerHTML=upcoming.map(item=>`<div class="upcoming-review"><span><strong>${escapeHTML(item.topic)}</strong><small>${escapeHTML(item.subject)}</small></span><time datetime="${item.dueDate}">${formatShortDate(item.dueDate)}</time><button type="button" data-archive-review="${item.id}" aria-label="${escapeHTML(item.topic)} tekrarını arşivle">×</button></div>`).join('')+moreButton('upcoming',upcomingAll.length,8);
   $('#emptyUpcomingReviews').classList.toggle('hidden',upcoming.length>0);
 }
 
@@ -239,7 +250,7 @@ function renderMistakes(){
   const current=state.errorEntries.filter(entry=>entry.status!=='reviewed');
   const reasonCounts=Object.keys(REASON_META).map(key=>({key,count:current.filter(entry=>entry.cause===key).reduce((sum,entry)=>sum+entry.count,0)})).filter(item=>item.count);
   $('#mistakeReasonSummary').innerHTML=reasonCounts.map(item=>`<span><strong>${item.count}</strong> ${REASON_META[item.key].label}</span>`).join('');
-  $('#mistakeList').innerHTML=[...state.errorEntries].reverse().slice(0,6).map(entry=>`<div class="mistake-entry"><span class="mistake-dot ${entry.cause}"></span><div><strong>${escapeHTML(entry.subject)} · ${escapeHTML(entry.topic)}</strong><small>${REASON_META[entry.cause]?.label||'Hata'} · ${entry.count} ${entry.outcome==='blank'?'boş':'yanlış'}${entry.status==='planned'?' · Planda':entry.status==='reviewed'?' · Tekrar edildi':''}</small></div><button type="button" data-delete-mistake="${entry.id}" aria-label="Hata kaydını sil">×</button></div>`).join('');
+  $('#mistakeList').innerHTML=[...state.errorEntries].reverse().slice(0,listExpanded.mistakes?Infinity:6).map(entry=>`<div class="mistake-entry"><span class="mistake-dot ${entry.cause}"></span><div><strong>${escapeHTML(entry.subject)} · ${escapeHTML(entry.topic)}</strong><small>${REASON_META[entry.cause]?.label||'Hata'} · ${entry.count} ${entry.outcome==='blank'?'boş':'yanlış'}${entry.status==='planned'?' · Planda':entry.status==='reviewed'?' · Tekrar edildi':''}</small></div><button type="button" data-delete-mistake="${entry.id}" aria-label="Hata kaydını sil">×</button></div>`).join('')+moreButton('mistakes',state.errorEntries.length,6);
   $('#emptyMistakes').textContent=exams.length?'Henüz hata kaydı yok.':'Hata defterini kullanmak için önce bir deneme sonucu ekle.';
   $('#emptyMistakes').classList.toggle('hidden',state.errorEntries.length>0);
   const next=getNextAction();
@@ -273,10 +284,11 @@ function ensureProgramIds(){
   if(changed)save();
 }
 ensureProgramIds();
-function programTaskKey(day,itemIndex){return `${day}-${itemIndex}`;}
 function programDayDone(day){return day.items.length>0&&day.items.every(item=>state.programCompleted[item.id]);}
 // Çalışma türleri: kullanıcı ne yapacağını ve kaç tane olduğunu kendisi giriyor.
 const PROGRAM_TYPES={video:{label:'Konu videosu',unit:'video'},test:{label:'Test çöz',unit:'test'},soru:{label:'Soru çöz',unit:'soru'},tekrar:{label:'Konu tekrarı',unit:''},deneme:{label:'Deneme',unit:'deneme'}};
+// Eski biçim videoCount, yeni biçim type:'video' + amount.
+const itemVideoCount=item=>Number(item.videoCount)||(item.type==='video'?Number(item.amount)||0:0);
 function programAmountLabel(item){
   if(item.amount&&PROGRAM_TYPES[item.type]?.unit)return `${item.amount} ${PROGRAM_TYPES[item.type].unit}`;
   if(item.videoCount)return `${item.videoCount} video`;
@@ -285,10 +297,11 @@ function programAmountLabel(item){
 function programSummary(days){
   const first=dateFromKey(days[0].date),last=dateFromKey(days.at(-1).date);
   const items=days.flatMap(day=>day.items);
-  const videos=items.reduce((sum,item)=>sum+(item.videoCount||0),0);
+  const videos=items.reduce((sum,item)=>sum+itemVideoCount(item),0);
   const minutes=Math.round(items.reduce((sum,item)=>sum+(item.durationSeconds||0),0)/60);
   const range=`${first.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}–${last.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}`;
-  return videos?`${range} · ${videos} video · yaklaşık ${Math.floor(minutes/60)} saat ${minutes%60} dakika`:range;
+  const duration=minutes?`yaklaşık ${Math.floor(minutes/60)?`${Math.floor(minutes/60)} saat `:''}${minutes%60?`${minutes%60} dakika`:''}`.trim():'';
+  return [range,videos?`${videos} video`:'',duration].filter(Boolean).join(' · ');
 }
 function renderProgram(){
   const PROGRAM_DAYS=programDays(),hasProgram=PROGRAM_DAYS.length>0;
@@ -332,7 +345,10 @@ function renderProgram(){
   programWeek=Math.max(0,Math.min(totalWeeks-1,programWeek));
   const weekKey=weekKeys[programWeek];
   const weekDays=PROGRAM_DAYS.filter(day=>weekOf(day.date)===weekKey);
-  const visible=weekDays.filter(day=>programFilter==='all'||programFilter==='done'&&programDayDone(day)||programFilter==='pending'&&!programDayDone(day));
+  // "Tüm günler" haftaya göre; "Kalanlar/Tamamlananlar" tüm programda arar (sadece o haftada arıyordu).
+  const matchesFilter=day=>programFilter==='done'?programDayDone(day):!programDayDone(day);
+  const visible=programFilter==='all'?weekDays:PROGRAM_DAYS.filter(matchesFilter);
+  document.querySelectorAll('.week-pager,.week-bottom-nav').forEach(el=>el.classList.toggle('hidden',programFilter!=='all'));
   const weekStart=dateFromKey(weekKey),weekEnd=dateFromKey(addDaysKey(weekKey,6));
   const sameMonth=weekStart.getMonth()===weekEnd.getMonth();
   const weekDates=sameMonth?`${weekStart.getDate()}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}`:`${weekStart.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}`;
@@ -345,7 +361,7 @@ function renderProgram(){
     const date=dateFromKey(day.date),isToday=day.date===today,isNext=day.day===focusDay.day&&todayIndex<0;
     const dateText=date.toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'short'});
     const done=programDayDone(day);
-    const dayVideoCount=day.items.reduce((sum,item)=>sum+(item.videoCount||0),0);
+    const dayVideoCount=day.items.reduce((sum,item)=>sum+itemVideoCount(item),0);
     const dayDuration=day.items.reduce((sum,item)=>sum+(item.durationSeconds||0),0);
     const dayMeta=[day.items.length?`${day.items.length} çalışma`:'',dayVideoCount?`${dayVideoCount} video`:'',dayDuration?formatVideoDuration(dayDuration):''].filter(Boolean).join(' · ');
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
@@ -374,6 +390,7 @@ function render(){
   $('#doneCount').textContent=`${done} görev`; $('#doneDetail').textContent=`Planının %${pct}'i`;
   const plannedMinutes=renderCapacity();
   $('#todayOverviewSummary').textContent=`${todays.length} görev · ${plannedMinutes} / ${state.dailyTarget} dk planlandı`;
+  $('#todayHeroTitle').textContent=!todays.length?'Bugün için plan yok':todays.every(t=>t.done)?'Bugünün planı tamam!':'Planın hazır.';
   // Bugün listesi: geciken (önceki günlerden kalan, bitmemiş) görevler başta, sonra bugünün bitmemişleri, en sonda bugün tamamlananlar.
   // Görevler buradan işaretlenip silinir (eskiden işaretleme kutusu gizli bir bölümde kalmıştı).
   const overdue=state.tasks.filter(t=>!t.done&&t.date<todayKey()).sort((a,b)=>a.date.localeCompare(b.date));
@@ -410,10 +427,11 @@ function render(){
 function renderStreak(){
   const today=todayKey(),active=new Set();
   state.sessions.forEach(session=>{if(session.date)active.add(session.date);});
-  state.tasks.forEach(task=>{if(task.done&&task.date)active.add(task.date);});
-  state.exams.forEach(exam=>{if(exam.date)active.add(exam.date);});
+  // Seri, işin YAPILDIĞI güne göre sayılır (geçmiş bir görevi bugün işaretlemek seriyi geriye dönük uzatmasın).
+  state.tasks.forEach(task=>{if(task.done){const day=task.doneDate||task.date;if(day&&day<=today)active.add(day);}});
+  state.exams.forEach(exam=>{if(exam.date&&exam.date<=today)active.add(exam.date);});
   state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
-  programDays().forEach(day=>{if(day.items.some(item=>state.programCompleted[item.id]))active.add(day.date);});
+  programDays().forEach(day=>day.items.forEach(item=>{const mark=state.programCompleted[item.id];if(!mark)return;const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date;if(doneDay<=today)active.add(doneDay);}));
   let date=active.has(today)?today:addDaysKey(today,-1),days=0;
   while(active.has(date)&&date<=today){days++;date=addDaysKey(date,-1);}
   $('#streakValue').textContent=`${days} gün`;
@@ -422,7 +440,7 @@ function renderStreak(){
 function renderWeek(){
   const days=[]; const now=new Date();
   const monday=new Date(now); monday.setDate(now.getDate()-((now.getDay()+6)%7));
-  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const key=d.toISOString().slice(0,10);const min=state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0);days.push({label:dayLabel(d),min,today:key===todayKey()});}
+  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const key=localDateKey(d);/* UTC değil yerel tarih: gece 00-03 arası bir gün kayıyordu */const min=state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0);days.push({label:dayLabel(d),min,today:key===todayKey()});}
   const max=Math.max(120,...days.map(d=>d.min));
   $('#weekChart').innerHTML=days.map(d=>`<div class="bar-col ${d.today?'today':''}" title="${d.min} dakika"><div class="bar-track"><i class="bar-fill" style="height:${Math.max(3,d.min/max*100)}%"></i></div><span>${d.label}</span></div>`).join('');
   const total=days.reduce((a,d)=>a+d.min,0); $('#weekTotal').textContent=formatMinutes(total);
@@ -432,7 +450,7 @@ function syncTaskErrors(task){
   const ids=task.source?.type==='exam-error'?task.source.errorIds||[]:[];
   state.errorEntries.forEach(entry=>{if(ids.includes(entry.id)){entry.status=task.done?'reviewed':'planned';entry.reviewedAt=task.done?new Date().toISOString():null;}});
 }
-function handleTaskChange(e){if(e.target.matches('.task-check')){const t=state.tasks.find(x=>x.id===e.target.dataset.id);if(t){t.done=e.target.checked;syncTaskErrors(t);toast(t.done?'Hedef tamamlandı!':'Hedef yeniden açıldı');render();}}}
+function handleTaskChange(e){if(e.target.matches('.task-check')){const t=state.tasks.find(x=>x.id===e.target.dataset.id);if(t){t.done=e.target.checked;t.doneDate=t.done?todayKey():undefined;syncTaskErrors(t);toast(t.done?'Hedef tamamlandı!':'Hedef yeniden açıldı');render();}}}
 function handleTaskClick(e){const id=e.target.dataset.delete;if(id){const task=state.tasks.find(t=>t.id===id);if(task?.source?.type==='exam-error')state.errorEntries.forEach(entry=>{if(task.source.errorIds.includes(entry.id)){entry.status='open';entry.taskId=null;entry.reviewedAt=null;}});state.tasks=state.tasks.filter(t=>t.id!==id);render();return;}const subject=e.target.dataset.subject;if(subject){showForm();$('#taskSubject').value=subject;}}
 taskList.addEventListener('change',handleTaskChange);taskList.addEventListener('click',handleTaskClick);
 $('#subjectGrid').addEventListener('change',handleTaskChange);$('#subjectGrid').addEventListener('click',handleTaskClick);
@@ -523,7 +541,13 @@ $('#increaseTimerDuration').onclick=()=>{if(!confirmTimerReset())return;const mo
 $('#timerDurationValue').onchange=event=>{if(!confirmTimerReset()){syncTimerDurationControl();return;}setTimerDuration(Number(event.target.value)||timer.total/60);};
 document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{if(btn.classList.contains('active')||!confirmTimerReset())return;stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';syncTimerDurationControl();updateTimer();persistTimer();});
 
-const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');
+const writeFullDate=()=>{$('#fullDate').textContent=new Date().toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');};
+writeFullDate();
+// Gece yarısını geçen açık sekme: tarih başlığı ve "bugün" listeleri kendiliğinden yenilensin.
+let renderedDay=todayKey();
+const checkDayChange=()=>{if(todayKey()!==renderedDay){renderedDay=todayKey();writeFullDate();render();}};
+setInterval(checkDayChange,60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkDayChange();});
 $('#examDate').value=todayKey();
 
 const viewTitles={
@@ -554,8 +578,15 @@ window.addEventListener('hashchange',()=>setView(location.hash.slice(1),true));
 setView(location.hash.slice(1)||'today');
 
 let pendingRecallSession=null;
-function openModal(id,focusSelector){const modal=$(`#${id}`);modal.classList.remove('hidden');document.body.classList.add('modal-open');setTimeout(()=>modal.querySelector(focusSelector||'input,textarea,button')?.focus(),30);}
-function closeModal(id){$(`#${id}`).classList.add('hidden');document.body.classList.remove('modal-open');}
+// Pencere kapanınca odak, pencereyi açan öğeye döner; başka pencere açıksa sayfa kilidi kalkmaz.
+const modalReturnFocus=new Map();
+function openModal(id,focusSelector){const modal=$(`#${id}`);if(modal.classList.contains('hidden'))modalReturnFocus.set(id,document.activeElement);modal.classList.remove('hidden');document.body.classList.add('modal-open');setTimeout(()=>modal.querySelector(focusSelector||'input,textarea,button')?.focus(),30);}
+function closeModal(id){
+  $(`#${id}`).classList.add('hidden');
+  if(!document.querySelector('.modal-backdrop:not(.hidden)'))document.body.classList.remove('modal-open');
+  const back=modalReturnFocus.get(id);modalReturnFocus.delete(id);
+  if(back&&document.contains(back))back.focus?.();
+}
 document.querySelectorAll('[data-close-modal]').forEach(button=>button.onclick=()=>closeModal(button.dataset.closeModal));
 // Eşitleme çakışması seçim yapılmadan kapatılamaz (arka plan tıklaması ve Esc ile de).
 const MUST_CHOOSE=new Set(['recallDialog','syncConflict']);
@@ -632,7 +663,7 @@ function applySettings(showMessage=false){
   save();if(showMessage)toast('Ayarlar kaydedildi');
 }
 function playTone(){
-  try{const Ctx=window.AudioContext||window.webkitAudioContext;const ctx=new Ctx();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.frequency.value=660;gain.gain.setValueAtTime(.08,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.35);osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.36);}catch{}
+  try{const Ctx=window.AudioContext||window.webkitAudioContext;const ctx=new Ctx();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.frequency.value=660;gain.gain.setValueAtTime(.08,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.35);osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.36);osc.onended=()=>ctx.close();/* açık kalan ses bağlamları birikmesin */}catch{}
 }
 document.querySelectorAll('#themeChoices [data-theme]').forEach(btn=>btn.onclick=()=>{state.settings.theme=btn.dataset.theme;applySettings(true);});
 document.querySelectorAll('[data-accent]').forEach(btn=>btn.onclick=()=>{state.settings.accent=btn.dataset.accent;applySettings(true);});
@@ -648,7 +679,7 @@ document.addEventListener('keydown',e=>{
   if(document.querySelector('.modal-backdrop:not(.hidden)')||e.target.closest?.('input,textarea,select'))return;
   location.hash=previousView;
 });
-$('#exportData').onclick=()=>{const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`calisma-yedegi-${todayKey()}.json`;a.click();URL.revokeObjectURL(url);toast('Yedek indirildi');};
+$('#exportData').onclick=()=>{const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`calisma-yedegi-${todayKey()}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);/* bazı tarayıcılarda hemen iptal indirmeyi durduruyordu */toast('Yedek indirildi');};
 $('#importData').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
   const file=e.target.files[0];e.target.value='';if(!file)return;
@@ -683,7 +714,8 @@ renderUndo();
 $('#confirmImport').onclick=()=>{if(!pendingImport)return;keepUndoCopy('yedek yükleme');localStorage.setItem(STORAGE_KEY,JSON.stringify(normalizeState(pendingImport)));location.reload();};
 $('#showReset').onclick=()=>{$('#resetConfirm').classList.remove('hidden');$('#resetText').focus();};
 $('#cancelReset').onclick=()=>{$('#resetConfirm').classList.add('hidden');$('#resetText').value='';$('#confirmReset').disabled=true;$('#resetProgress').checked=true;$('#resetProgram').checked=true;$('#resetPacks').checked=false;};
-$('#resetText').oninput=e=>$('#confirmReset').disabled=e.target.value.trim().toLocaleUpperCase('tr-TR')!=='SIFIRLA';
+// "sifirla" tr-TR büyük harfte "SİFİRLA" olur; ikisini de kabul et.
+$('#resetText').oninput=e=>$('#confirmReset').disabled=!['SIFIRLA','SİFİRLA'].includes(e.target.value.trim().toLocaleUpperCase('tr-TR'));
 $('#confirmReset').onclick=()=>{
   if(!$('#resetProgress').checked&&!$('#resetProgram').checked&&!$('#resetPacks').checked){toast('Silinecek bir şey seçmedin');return;}
   keepUndoCopy('sıfırlama');
@@ -801,7 +833,7 @@ function renderExams(){
   const last3=exams.slice(-3);$('#averageNet').textContent=last3.length?formatNet(last3.reduce((a,x)=>a+x.net,0)/last3.length):'—';
   $('#bestNet').textContent=exams.length?formatNet(Math.max(...exams.map(x=>x.net))):'—';
   $('#targetGap').textContent=latest?`${latest.net>=state.examTarget?'+':''}${formatNet(latest.net-state.examTarget)}`:'—';
-  $('#examList').innerHTML=[...exams].reverse().slice(0,8).map(x=>{const groups=EXAM_GROUPS_BY_TYPE[x.type]||EXAM_GROUPS_BY_TYPE.TYT;const breakdown=x.subjects?`<details class="exam-entry-breakdown"><summary>Ders sonuçları</summary>${groups.map(group=>{const value=x.subjects[group.key];if(!value)return '';const branches=group.children&&value.branches?`<small>${group.children.map(([key,label])=>`${label} ${value.branches[key]?.correct??0}D ${value.branches[key]?.wrong??0}Y ${value.branches[key]?.blank??0}B`).join(' · ')}</small>`:'';return `<div><strong>${group.label}: ${formatNet(examNet(value.correct,value.wrong))} net</strong><span>${value.correct}D ${value.wrong}Y ${value.blank}B</span>${branches}</div>`;}).join('')}</details>`:'';return `<div class="exam-entry"><span class="exam-entry-copy"><strong>${escapeHTML(x.name)}</strong><span>${x.type} · ${new Date(x.date+'T12:00:00').toLocaleDateString('tr-TR')} · ${x.correct}D ${x.wrong}Y ${x.blank}B</span>${breakdown}</span><strong class="exam-net">${formatNet(x.net)}</strong><button class="analyze-exam" data-analyze-exam="${x.id}" type="button">Analiz et</button><button class="delete-exam" data-delete-exam="${x.id}" aria-label="${escapeHTML(x.name)} kaydını sil">×</button></div>`;}).join('');
+  $('#examList').innerHTML=[...exams].reverse().slice(0,listExpanded.exams?Infinity:8).map(x=>{const groups=EXAM_GROUPS_BY_TYPE[x.type]||EXAM_GROUPS_BY_TYPE.TYT;const breakdown=x.subjects?`<details class="exam-entry-breakdown"><summary>Ders sonuçları</summary>${groups.map(group=>{const value=x.subjects[group.key];if(!value)return '';const branches=group.children&&value.branches?`<small>${group.children.map(([key,label])=>`${label} ${value.branches[key]?.correct??0}D ${value.branches[key]?.wrong??0}Y ${value.branches[key]?.blank??0}B`).join(' · ')}</small>`:'';return `<div><strong>${group.label}: ${formatNet(examNet(value.correct,value.wrong))} net</strong><span>${value.correct}D ${value.wrong}Y ${value.blank}B</span>${branches}</div>`;}).join('')}</details>`:'';return `<div class="exam-entry"><span class="exam-entry-copy"><strong>${escapeHTML(x.name)}</strong><span>${x.type} · ${new Date(x.date+'T12:00:00').toLocaleDateString('tr-TR')} · ${x.correct}D ${x.wrong}Y ${x.blank}B</span>${breakdown}</span><strong class="exam-net">${formatNet(x.net)}</strong><button class="analyze-exam" data-analyze-exam="${x.id}" type="button">Analiz et</button><button class="delete-exam" data-delete-exam="${x.id}" aria-label="${escapeHTML(x.name)} kaydını sil">×</button></div>`;}).join('')+moreButton('exams',exams.length,8);
   $('#emptyExams').classList.toggle('hidden',exams.length>0);
   renderExamChart(recent);
   save();
@@ -827,7 +859,7 @@ $('#weeklyReviewForm').addEventListener('submit',event=>{
   render();toast('Haftalık değerlendirme kaydedildi');
 });
 $('#lastWeeklyReview').addEventListener('click',event=>{if(event.target.id!=='editWeeklyReview')return;const review=state.weeklyReviews.find(item=>item.weekStart===weekStartKey());if(!review)return;$('#weeklyWin').value=review.win;$('#weeklyBlock').value=review.block;$('#weeklyChange').value=review.change;$('#lastWeeklyReview').classList.add('hidden');$('#weeklyReviewForm').classList.remove('hidden');$('#weeklyWin').focus();});
-$('#programList').addEventListener('change',event=>{const key=event.target.dataset.programTask;if(!key)return;state.programCompleted[key]=event.target.checked;if(!event.target.checked)delete state.programCompleted[key];render();toast(event.target.checked?'Çalışma tamamlandı!':'Çalışma yeniden açıldı');});
+$('#programList').addEventListener('change',event=>{const key=event.target.dataset.programTask;if(!key)return;state.programCompleted[key]=event.target.checked?todayKey():false;/* işaretlendiği gün (seri için) */if(!event.target.checked)delete state.programCompleted[key];render();toast(event.target.checked?'Çalışma tamamlandı!':'Çalışma yeniden açıldı');});
 document.querySelectorAll('[data-program-filter]').forEach(button=>button.onclick=()=>{programFilter=button.dataset.programFilter;document.querySelectorAll('[data-program-filter]').forEach(item=>item.classList.toggle('active',item===button));renderProgram();});
 document.querySelectorAll('[data-program-week-dir]').forEach(button=>button.onclick=()=>{programWeek+=Number(button.dataset.programWeekDir);renderProgram();$('#programList').scrollIntoView({behavior:'smooth',block:'start'});});
 $('#jumpProgramDay').onclick=()=>{programWeek=Number($('#jumpProgramDay').dataset.targetWeek)||0;renderProgram();const day=$('#jumpProgramDay').dataset.targetDay;document.querySelector(`#program-day-${day}`)?.scrollIntoView({behavior:'smooth',block:'center'});};
@@ -882,7 +914,7 @@ function registerStudyTools(){
     description:'Bir TYT, AYT veya YDT denemesini doğru, yanlış ve boş sayılarıyla kaydeder; neti otomatik hesaplar.',
     inputSchema:{type:'object',properties:{type:{type:'string',enum:['TYT','AYT','YDT']},name:{type:'string',minLength:1,maxLength:60},date:{type:'string'},correct:{type:'integer',minimum:0},wrong:{type:'integer',minimum:0},blank:{type:'integer',minimum:0}},required:['type','name','date','correct','wrong','blank'],additionalProperties:false},
     annotations:{readOnlyHint:false,untrustedContentHint:false},
-    execute(input){if(!input||!['TYT','AYT','YDT'].includes(input.type)||!input.name?.trim()||input.date>todayKey()||![input.correct,input.wrong,input.blank].every(Number.isInteger)||input.correct+input.wrong+input.blank<1)throw new Error('Geçerli sınav türü, ad, tarih ve soru sonuçları girilmeli.');const exam={id:uid(),type:input.type,name:input.name.trim(),date:input.date,correct:input.correct,wrong:input.wrong,blank:input.blank,net:examNet(input.correct,input.wrong),duration:null,score:null};state.exams.push(exam);render();return{id:exam.id,net:exam.net,status:'saved'};}
+    execute(input){if(!input||!['TYT','AYT','YDT'].includes(input.type)||!input.name?.trim()||!DATE_RE.test(String(input.date))||input.date>todayKey()||![input.correct,input.wrong,input.blank].every(Number.isInteger)||input.correct+input.wrong+input.blank<1)throw new Error('Geçerli sınav türü, ad, tarih ve soru sonuçları girilmeli.');const exam={id:uid(),type:input.type,name:input.name.trim(),date:input.date,correct:input.correct,wrong:input.wrong,blank:input.blank,net:examNet(input.correct,input.wrong),duration:null,score:null};state.exams.push(exam);render();return{id:exam.id,net:exam.net,status:'saved'};}
   });
   register({
     name:'add_review_item',title:'Tekrar kuyruğuna konu ekle',
