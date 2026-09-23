@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-1';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-2';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -200,7 +200,12 @@ async function sync() {
     if (action === 'insert' && !(await push(null))) { again = true; return; }
     if (action === 'update' && !(await push(remote.version))) { again = true; return; }
     if (action === 'adopt') writeMeta({ userId: user.id, version: remote.version, base: stable(local) });
-    if (action === 'apply') { applyRemote(remote); return; }
+    if (action === 'apply') {
+      // Açık pencere / yazılan alan varken sayfayı yenileme; kullanıcının yarım işi kaybolmasın.
+      if (window.odakBusy?.()) { setStatus('Başka cihazdan yeni veri var; açık pencereyi kapatınca uygulanacak.'); schedule(15000); return; }
+      applyRemote(remote);
+      return;
+    }
     if (action === 'conflict') { showConflict(remote, local); return; }
     setStatus(`Eşitlendi · ${timeLabel(Date.now())}`, 'ok');
   } catch (error) {

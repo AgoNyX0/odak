@@ -42,6 +42,10 @@ button.mistake-pack-link{border:0;cursor:pointer;font-family:inherit}
 button.mistake-pack-download{background:none;cursor:pointer;font-family:inherit}
 #mistakePacks:empty{display:none}
 .preview-task span{flex:1;min-width:0}
+.preview-task .preview-check{flex:none;width:20px;height:20px;margin:0;accent-color:var(--primary);cursor:pointer}
+.preview-task.done strong{text-decoration:line-through;color:var(--muted)}
+.preview-task.done i{opacity:.4}
+.late-tag{color:#f0a45c;font-weight:700}
 .preview-task .preview-delete{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;opacity:1;font-size:1.3rem;line-height:1}
 .preview-task .preview-delete:hover{background:rgba(255,93,115,.12);color:#ff9aa7}
 .personal-viewer-card{display:flex;flex-direction:column;width:min(1100px,100%);height:min(92vh,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}

@@ -94,6 +94,8 @@ if(!state.seedSamplesCleaned){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); window.odakSync?.changed(); };
+// Kullanıcı bir pencerede ya da bir alanda yazıyorsa buluttan gelen güncelleme (sayfa yenileme) beklesin.
+window.odakBusy=()=>Boolean(document.querySelector('.modal-backdrop:not(.hidden)')||document.activeElement?.matches?.('input:not([type=checkbox]):not([type=radio]),textarea,select'));
 // Başka bir sekme veriyi değiştirdiyse bu sekmenin bellekteki eski kopyası onu ezmesin: yeni veriyi al.
 window.addEventListener('storage',event=>{
   if(event.key!==STORAGE_KEY||event.newValue===null)return;
@@ -182,8 +184,9 @@ function renderCapacity(){
 function renderTodayActions(){
   const action=getNextAction();
   $('#todayNextTitle').textContent=action.title;$('#todayNextReason').textContent=action.reason;
-  $('#acceptNextAction').textContent=action.kind==='task'?'Planı aç':action.kind==='error'?'Plana ekle':'Görev ekle';
+  $('#acceptNextAction').textContent=action.kind==='task'?'Odaklan':action.kind==='error'?'Plana ekle':'Görev ekle';
   $('#acceptNextAction').dataset.actionKind=action.kind;
+  $('#acceptNextAction').dataset.taskId=action.taskId||'';
   const due=state.reviewItems.filter(item=>item.status==='active'&&item.dueDate<=todayKey());
   $('#todayReviewCount').textContent=due.length;
   $('#todayReviewText').textContent=due.length?`Yaklaşık ${Math.max(2,due.length*2)} dakika.`:'Tekrar kuyruğun boş.';
@@ -349,9 +352,13 @@ function render(){
   $('#doneCount').textContent=`${done} görev`; $('#doneDetail').textContent=`Planının %${pct}'i`;
   const plannedMinutes=renderCapacity();
   $('#todayOverviewSummary').textContent=`${todays.length} görev · ${plannedMinutes} / ${state.dailyTarget} dk planlandı`;
-  $('#todayPreviewList').innerHTML=todays.filter(t=>!t.done).map(t=>{const meta=subjectMeta(t.subject);return `<div class="preview-task"><i style="--lesson-color:${meta.color}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${escapeHTML(meta.name)} · ${t.minutes} dk</small></span><button class="delete-task preview-delete" type="button" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil" title="Görevi sil">×</button></div>`;}).join('');
+  // Bugün listesi: geciken (önceki günlerden kalan, bitmemiş) görevler başta, sonra bugünün bitmemişleri, en sonda bugün tamamlananlar.
+  // Görevler buradan işaretlenip silinir (eskiden işaretleme kutusu gizli bir bölümde kalmıştı).
+  const overdue=state.tasks.filter(t=>!t.done&&t.date<todayKey()).sort((a,b)=>a.date.localeCompare(b.date));
+  const previewRows=[...overdue,...todays.filter(t=>!t.done),...todays.filter(t=>t.done)];
+  $('#todayPreviewList').innerHTML=previewRows.map(t=>{const meta=subjectMeta(t.subject),late=t.date<todayKey();return `<div class="preview-task ${t.done?'done':''} ${late?'late':''}"><input class="task-check preview-check" type="checkbox" data-id="${t.id}" ${t.done?'checked':''} aria-label="${escapeHTML(t.title)} görevini ${t.done?'yeniden aç':'tamamla'}"><i style="--lesson-color:${meta.color}"></i><span><strong>${escapeHTML(t.title)}</strong><small>${late?`<b class="late-tag">Gecikti · ${formatShortDate(t.date)}</b> · `:''}${escapeHTML(meta.name)} · ${Number(t.minutes)||0} dk</small></span><button class="delete-task preview-delete" type="button" data-delete="${t.id}" aria-label="${escapeHTML(t.title)} görevini sil" title="Görevi sil">×</button></div>`;}).join('');
   $('#emptyTodayPreview').textContent=todays.length?'Bugünün tüm görevleri tamamlandı.':'Bugün için görev yok. Planına küçük bir hedef ekle.';
-  $('#emptyTodayPreview').classList.toggle('hidden',todays.some(t=>!t.done));
+  $('#emptyTodayPreview').classList.toggle('hidden',previewRows.length>0);
 
   const subjects=[...SUBJECTS.map(subject=>subject.name),...new Set(todays.filter(task=>!canonicalSubject(task.subject)).map(task=>task.subject))];
   const old=timerSubject.value;
@@ -408,9 +415,12 @@ function handleTaskClick(e){const id=e.target.dataset.delete;if(id){const task=s
 taskList.addEventListener('change',handleTaskChange);taskList.addEventListener('click',handleTaskClick);
 $('#subjectGrid').addEventListener('change',handleTaskChange);$('#subjectGrid').addEventListener('click',handleTaskClick);
 $('#todayPreviewList').addEventListener('click',e=>{if(e.target.dataset.delete){handleTaskClick(e);toast('Görev silindi');}});
+$('#todayPreviewList').addEventListener('change',handleTaskChange);
 function showForm(){taskForm.classList.remove('hidden');$('#taskTitle').focus();}
 $('#openTaskForm').onclick=showForm; $('#emptyAdd').onclick=showForm;
-$('#todayAddTask').onclick=()=>{location.hash='plan';setTimeout(showForm,80);};
+// Görev formu eskiden gizli bir bölümdeydi ve açılmıyordu; hızlı ekle penceresini kullan.
+const openTaskCapture=()=>openModal('quickCaptureDialog','#quickTaskTitle');
+$('#todayAddTask').onclick=openTaskCapture;
 taskForm.addEventListener('submit',e=>{e.preventDefault();const task={id:uid(),title:$('#taskTitle').value.trim(),subject:$('#taskSubject').value.trim(),minutes:Number($('#taskMinutes').value),done:false,date:todayKey()};state.tasks.push(task);taskForm.reset();$('#taskMinutes').value=30;taskForm.classList.add('hidden');const planned=state.tasks.filter(t=>t.date===todayKey()).reduce((sum,t)=>sum+t.minutes,0);toast(planned>state.dailyTarget?`Planın kapasiteni ${planned-state.dailyTarget} dk aşıyor.`:'Hedef plana eklendi');render();});
 
 function addSuggestedTask(){
@@ -420,26 +430,62 @@ function addSuggestedTask(){
   state.tasks.push(task);state.errorEntries.forEach(entry=>{if(action.errorIds.includes(entry.id)){entry.status='planned';entry.taskId=task.id;}});render();toast('Öneri bugünün planına eklendi');return true;
 }
 $('#addSuggestedTask').onclick=addSuggestedTask;
-$('#acceptNextAction').onclick=e=>{const kind=e.currentTarget.dataset.actionKind;if(kind==='error'){addSuggestedTask();}else if(kind==='task'){location.hash='plan';}else{location.hash='plan';setTimeout(showForm,80);}};
+$('#acceptNextAction').onclick=e=>{
+  const kind=e.currentTarget.dataset.actionKind;
+  if(kind==='error'){addSuggestedTask();return;}
+  // Sıradaki görevde: odak sayacını o görevin dersiyle aç (eskiden görev olmayan Program ekranına gidiyordu).
+  if(kind==='task'){const task=state.tasks.find(t=>t.id===e.currentTarget.dataset.taskId);location.hash='focus';if(task){setTimeout(()=>{const option=[...timerSubject.options].find(o=>o.value===task.subject);if(option)timerSubject.value=task.subject;},60);}return;}
+  openTaskCapture();
+};
 
 function updateTimer(){
   const m=Math.floor(timer.left/60),s=timer.left%60;$('#timerText').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   const circumference=590.62;$('#ringProgress').style.strokeDashoffset=circumference*(1-timer.left/timer.total);
   document.title=timer.running?`${m}:${String(s).padStart(2,'0')} • Odak`:'Odak — Ders Çalışma Paneli';
 }
-function stopTimer(){clearInterval(timer.id);timer.running=false;$('#playIcon').textContent='▶';$('#playLabel').textContent='Başlat';}
-function completeTimer(){
+// Sayaç gerçek saate göre çalışır: kalan süre bitiş anından (endAt) hesaplanır. Böylece arka planda / kilitli
+// ekranda geri kalmaz. Durumu ayrı bir anahtarda saklanır; sayfa yenilense de kaldığı yerden devam eder.
+const TIMER_KEY='odak-timer';
+function persistTimer(){try{localStorage.setItem(TIMER_KEY,JSON.stringify({total:timer.total,left:timer.left,running:timer.running,endAt:timer.endAt||0,isFocus:timer.isFocus,mode:Math.max(0,activeTimerMode()),subject:timerSubject.value}));}catch{}}
+function tickTimer(){
+  if(!timer.running)return;
+  timer.left=Math.max(0,Math.ceil((timer.endAt-Date.now())/1000));
+  updateTimer();
+  if(timer.left<=0)completeTimer(true);
+}
+function startTimer(){
+  if(timer.running)return;
+  timer.running=true;timer.endAt=Date.now()+timer.left*1000;
+  $('#playIcon').textContent='Ⅱ';$('#playLabel').textContent='Duraklat';
+  clearInterval(timer.id);timer.id=setInterval(tickTimer,1000);persistTimer();
+}
+function stopTimer(){
+  if(timer.running)timer.left=Math.max(0,Math.ceil((timer.endAt-Date.now())/1000));
+  clearInterval(timer.id);timer.running=false;timer.endAt=0;
+  $('#playIcon').textContent='▶';$('#playLabel').textContent='Başlat';persistTimer();
+}
+// natural=true: süre doldu (tam süre). false: kullanıcı "tamamla"ya bastı → gerçekten çalışılan süre kaydedilir.
+function completeTimer(natural=false){
+  const elapsed=natural?timer.total:timer.total-(timer.running?Math.max(0,Math.ceil((timer.endAt-Date.now())/1000)):timer.left);
   stopTimer();
   let completedSession=null;
-  if(timer.isFocus){const mins=Math.round(timer.total/60);completedSession={id:uid(),subject:timerSubject.value,minutes:mins,time:new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}),date:todayKey()};state.sessions.push(completedSession);toast(`${mins} dakikalık odak kaydedildi!`);render();}
+  if(timer.isFocus){
+    const mins=Math.round(elapsed/60);
+    if(mins>=1){completedSession={id:uid(),subject:timerSubject.value,minutes:mins,time:new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}),date:todayKey()};state.sessions.push(completedSession);toast(`${mins} dakikalık odak kaydedildi!`);render();}
+    else toast('1 dakikadan kısa süre kaydedilmedi.');
+  }
   else toast('Mola tamamlandı. Yeniden odaklanabilirsin.');
-  if(state.settings.sound)playTone();
-  timer.left=timer.total;updateTimer();
+  if(natural&&state.settings.sound)playTone();
+  timer.left=timer.total;updateTimer();persistTimer();
   if(completedSession)setTimeout(()=>openRecallDialog(completedSession),250);
 }
-$('#toggleTimer').onclick=()=>{if(timer.running){stopTimer();return;}timer.running=true;$('#playIcon').textContent='Ⅱ';$('#playLabel').textContent='Duraklat';timer.id=setInterval(()=>{timer.left--;updateTimer();if(timer.left<=0)completeTimer();},1000);};
-$('#resetTimer').onclick=()=>{stopTimer();timer.left=timer.total;updateTimer();toast('Sayaç sıfırlandı');};
-$('#skipTimer').onclick=()=>{if(confirm(timer.isFocus?'Bu odak oturumunu tamamlandı olarak kaydetmek ister misin?':'Molayı bitirmek ister misin?'))completeTimer();};
+// Çalışan ya da yarım kalmış bir sayacı onay almadan sıfırlama.
+const confirmTimerReset=()=>!(timer.running||timer.left<timer.total)||confirm('Devam eden sayaç sıfırlanacak. Emin misin?');
+$('#toggleTimer').onclick=()=>{if(timer.running)stopTimer();else startTimer();};
+$('#resetTimer').onclick=()=>{stopTimer();timer.left=timer.total;updateTimer();persistTimer();toast('Sayaç sıfırlandı');};
+$('#skipTimer').onclick=()=>{if(confirm(timer.isFocus?'Şu ana kadar çalıştığın süre odak oturumu olarak kaydedilsin mi?':'Molayı bitirmek ister misin?'))completeTimer(false);};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')tickTimer();});
+timerSubject.addEventListener('change',persistTimer);
 function activeTimerMode(){return [...document.querySelectorAll('.mode')].findIndex(button=>button.classList.contains('active'));}
 function syncTimerDurationControl(){const minutes=Math.round(timer.total/60);$('#timerDurationValue').value=minutes;}
 function setTimerDuration(minutes){
@@ -448,12 +494,12 @@ function setTimerDuration(minutes){
   stopTimer();state.settings[keys[modeIndex]]=value;
   const mode=document.querySelectorAll('.mode')[modeIndex];mode.dataset.minutes=value;mode.querySelector('span').textContent=`${value} dk`;
   const settingIds=['focusSetting','shortBreakSetting','longBreakSetting'];$(`#${settingIds[modeIndex]}`).value=value;
-  timer.total=value*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();save();
+  timer.total=value*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();persistTimer();save();
 }
-$('#decreaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60-[5,1,5][mode]);};
-$('#increaseTimerDuration').onclick=()=>{const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60+[5,1,5][mode]);};
-$('#timerDurationValue').onchange=event=>setTimerDuration(Number(event.target.value)||timer.total/60);
-document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';syncTimerDurationControl();updateTimer();});
+$('#decreaseTimerDuration').onclick=()=>{if(!confirmTimerReset())return;const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60-[5,1,5][mode]);};
+$('#increaseTimerDuration').onclick=()=>{if(!confirmTimerReset())return;const mode=Math.max(0,activeTimerMode());setTimerDuration(timer.total/60+[5,1,5][mode]);};
+$('#timerDurationValue').onchange=event=>{if(!confirmTimerReset()){syncTimerDurationControl();return;}setTimerDuration(Number(event.target.value)||timer.total/60);};
+document.querySelectorAll('.mode').forEach((btn,index)=>btn.onclick=()=>{if(btn.classList.contains('active')||!confirmTimerReset())return;stopTimer();document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));btn.classList.add('active');timer.total=Number(btn.dataset.minutes)*60;timer.left=timer.total;timer.isFocus=index===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';syncTimerDurationControl();updateTimer();persistTimer();});
 
 const now=new Date();$('#fullDate').textContent=now.toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'}).toLocaleUpperCase('tr-TR');
 $('#examDate').value=todayKey();
@@ -559,7 +605,8 @@ function applySettings(showMessage=false){
   const modes=[...document.querySelectorAll('.mode')];
   const values=[state.settings.focus,state.settings.shortBreak,state.settings.longBreak];
   modes.forEach((b,i)=>{b.dataset.minutes=values[i];b.querySelector('span').textContent=`${values[i]} dk`;});
-  if(!timer.running){const active=modes.findIndex(b=>b.classList.contains('active'));timer.total=values[Math.max(0,active)]*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();}
+  // Duraklatılmış (yarım kalmış) sayacı ayar kaydı yüzünden sıfırlama; sadece boştaki sayacı güncelle.
+  if(!timer.running&&timer.left===timer.total){const active=modes.findIndex(b=>b.classList.contains('active'));timer.total=values[Math.max(0,active)]*60;timer.left=timer.total;syncTimerDurationControl();updateTimer();}
   save();if(showMessage)toast('Ayarlar kaydedildi');
 }
 function playTone(){
@@ -764,6 +811,24 @@ document.querySelectorAll('[data-program-week-dir]').forEach(button=>button.oncl
 $('#jumpProgramDay').onclick=()=>{programWeek=Number($('#jumpProgramDay').dataset.targetWeek)||0;renderProgram();const day=$('#jumpProgramDay').dataset.targetDay;document.querySelector(`#program-day-${day}`)?.scrollIntoView({behavior:'smooth',block:'center'});};
 
 hydrateSettings();applySettings();render();updateTimer();
+// Sayfa yenilendiyse / sekme kapanıp açıldıysa sayacı kaldığı yerden sürdür; sen yokken bittiyse oturumu kaydet.
+(function restoreTimer(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(TIMER_KEY));}catch{}
+  if(!saved||!Number.isFinite(saved.total)||saved.total<=0)return;
+  const modes=[...document.querySelectorAll('.mode')];
+  const mode=Math.min(Math.max(0,Number(saved.mode)||0),modes.length-1);
+  modes.forEach((b,i)=>b.classList.toggle('active',i===mode));
+  timer.isFocus=mode===0;$('#timerState').textContent=timer.isFocus?'ODAK ZAMANI':'MOLA ZAMANI';
+  timer.total=saved.total;timer.left=Math.min(Math.max(0,Number(saved.left)||0),saved.total);
+  if([...timerSubject.options].some(o=>o.value===saved.subject))timerSubject.value=saved.subject;
+  syncTimerDurationControl();
+  if(saved.running&&saved.endAt){
+    const left=Math.ceil((saved.endAt-Date.now())/1000);
+    if(left<=0){timer.left=0;completeTimer(true);}
+    else{timer.left=left;startTimer();}
+  }
+  updateTimer();
+})();
 
 function registerStudyTools(){
   const context=document.modelContext;
