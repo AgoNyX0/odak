@@ -26,16 +26,25 @@
     $('#entryTopicList').innerHTML = (entry?.topics || []).map(topic => `<option value="${escapeHTML(topic)}"></option>`).join('');
   }
 
+  // Gizlenen alanlar devre dışı kalır; yoksa tarayıcı doğrulaması görünmeyen bir alanda takılır.
   function syncTypeFields() {
     const type = $('#entryType').value;
     const label = UNIT_LABEL[type];
     $('#entryAmountLabel').classList.toggle('hidden', !label);
+    $('#entryAmount').disabled = !label;
     if (label) $('#entryAmountLabel').firstChild.textContent = label;
+  }
+
+  function syncCustomSubject() {
+    const custom = !$('#entrySubject').value;
+    $('#entryCustomLabel').classList.toggle('hidden', !custom);
+    $('#entryCustomSubject').disabled = !custom;
   }
 
   function updateRepeatNote() {
     const on = $('#entryRepeat').checked;
     $('#entryRepeatFields').classList.toggle('hidden', !on);
+    ['#entryRepeatEvery', '#entryRepeatCount'].forEach(id => { $(id).disabled = !on; });
     if (!on) return;
     const every = Math.max(1, Number($('#entryRepeatEvery').value) || 1);
     const count = Math.max(1, Number($('#entryRepeatCount').value) || 1);
@@ -56,16 +65,19 @@
     state.program.start = state.program.days[0].date;
   }
 
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, Math.round(Number(value) || 0)));
+
   function collect() {
     const subjectEntry = subjectIndex.get($('#entrySubject').value);
     const type = $('#entryType').value;
-    const minutes = Number($('#entryMinutes').value) || 0;
-    const amount = UNIT_LABEL[type] ? Math.max(1, Number($('#entryAmount').value) || 1) : 0;
+    const minutes = $('#entryMinutes').value === '' ? 0 : clamp($('#entryMinutes').value, 1, 600);
+    const amount = UNIT_LABEL[type] ? clamp($('#entryAmount').value, 1, 500) : 0;
+    const custom = $('#entryCustomSubject').value.trim();
     return {
       date: $('#entryDate').value,
       item: {
         id: uid(),
-        subject: subjectEntry ? (SHORT[subjectEntry.subject] || subjectEntry.subject) : 'Diğer',
+        subject: subjectEntry ? (SHORT[subjectEntry.subject] || subjectEntry.subject) : (custom || 'Diğer'),
         range: subjectEntry?.group || '',
         topic: $('#entryTopic').value.trim(),
         type,
@@ -78,9 +90,11 @@
 
   function submit(keepOpen) {
     const error = $('#entryError');
+    // "Ekle ve devam et" type=button olduğu için tarayıcı doğrulaması kendiliğinden çalışmıyordu (eksi süre, dev adet).
+    if (!$('#entryForm').reportValidity()) return;
     const { date, item } = collect();
-    if (!date || !item.topic) {
-      error.textContent = 'Tarih ve konu gerekli.';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < '2020-01-01' || date > '2100-12-31' || !item.topic) {
+      error.textContent = 'Geçerli bir tarih ve konu gerekli.';
       error.classList.remove('hidden');
       return;
     }
@@ -88,13 +102,14 @@
     addItem(date, item);
     let added = 1;
     if ($('#entryRepeat').checked) {
-      const every = Math.max(1, Number($('#entryRepeatEvery').value) || 1);
-      const count = Math.max(1, Number($('#entryRepeatCount').value) || 1);
+      const every = clamp($('#entryRepeatEvery').value, 1, 120);
+      const count = clamp($('#entryRepeatCount').value, 1, 30);
       for (let index = 1; index <= count; index++) {
         addItem(addDaysKey(date, every * index), { ...item, id: uid(), repeatOf: item.id, practice: item.practice || 'Tekrar' });
         added++;
       }
     }
+    programWeekTarget = date; // eklenen çalışmanın haftasını göster
     render();
     toast(added > 1 ? `${added} çalışma eklendi (tekrarlarla)` : 'Çalışma eklendi');
     if (keepOpen) {
@@ -106,12 +121,22 @@
     }
   }
 
+  // Her açılışta form temiz gelir (önceki tekrar/adet/tarih farkında olmadan tekrar kullanılmasın); sadece ders korunur.
   function openEntry(date) {
     $('#entryError').classList.add('hidden');
-    $('#entryDate').value = date || $('#entryDate').value || todayKey();
+    $('#entryDate').value = date || todayKey();
+    $('#entryTopic').value = '';
+    $('#entryType').value = 'video';
+    $('#entryAmount').value = 1;
+    $('#entryMinutes').value = '';
+    $('#entryNote').value = '';
+    $('#entryRepeat').checked = false;
+    $('#entryRepeatEvery').value = 7;
+    $('#entryRepeatCount').value = 3;
     if (!$('#entrySubject').options.length) fillSubjects();
     fillTopics();
     syncTypeFields();
+    syncCustomSubject();
     updateRepeatNote();
     openModal('programEntry', '#entryTopic');
   }
@@ -120,12 +145,15 @@
   $('#entryDate').value = todayKey();
   fillTopics();
   syncTypeFields();
+  syncCustomSubject();
+  updateRepeatNote();
 
   // Ders değişince eski konu yazısı kalmasın: öneri listesi ona takılıyor ve kullanıcı elle silmek zorunda kalıyordu.
   $('#entrySubject').onchange = () => {
     $('#entryTopic').value = '';
     fillTopics();
-    $('#entryTopic').focus();
+    syncCustomSubject();
+    (!$('#entrySubject').value ? $('#entryCustomSubject') : $('#entryTopic')).focus();
   };
   // Kutuya dokununca mevcut yazı seçili gelsin; yazmaya başlayınca kendiliğinden değişir.
   // Tarayıcı odaklanmanın hemen ardından seçimi sıfırlıyor; bir tik sonra seç.
@@ -147,15 +175,23 @@
     const days = state.program?.days || [];
     const day = days.find(entry => entry.items.some(item => item.id === id));
     if (!day) return;
+    const removed = day.items.find(item => item.id === id);
+    const wasDone = Boolean(state.programCompleted[id]);
     day.items = day.items.filter(item => item.id !== id);
     delete state.programCompleted[id];
-    // Boş kalan günü programdan çıkar.
+    // Boş kalan günü programdan çıkar. Program nesnesi kalır (oynatma listesi bağlantıları vb. kaybolmasın).
     if (!day.items.length) {
       state.program.days = days.filter(entry => entry !== day);
       state.program.days.forEach((entry, index) => { entry.day = index + 1; });
     }
-    if (!state.program.days.length) state.program = null;
     render();
-    toast('Çalışma silindi');
+    // Tek dokunuşla yanlışlıkla silmeye karşı: "Geri al".
+    toast('Çalışma silindi', { label: 'Geri al', run: () => {
+      addItem(day.date, removed);
+      if (wasDone) state.programCompleted[removed.id] = true;
+      programWeekTarget = day.date;
+      render();
+      toast('Çalışma geri alındı');
+    } });
   });
 })();

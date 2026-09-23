@@ -46,6 +46,26 @@ button.mistake-pack-download{background:none;cursor:pointer;font-family:inherit}
 .preview-task.done strong{text-decoration:line-through;color:var(--muted)}
 .preview-task.done i{opacity:.4}
 .late-tag{color:#f0a45c;font-weight:700}
+/* Görünmezken tıklamaları yutmasın; "Geri al" düğmesi için görünürken tıklanabilir. */
+.toast{pointer-events:none;display:flex;align-items:center;gap:12px}
+.toast.show{pointer-events:auto}
+.toast-action{border:0;background:#11172a;color:#fff;border-radius:8px;padding:6px 11px;font:inherit;font-weight:800;cursor:pointer}
+@media(max-width:700px){.toast{bottom:88px;max-width:calc(100vw - 32px)}}
+/* Mobil alt menü: 6 öğe 360–390px ekrana sığsın ("Denemeler" ekran dışında kalıyordu). */
+@media(max-width:700px){
+  .sidebar{padding:6px 4px}
+  .sidebar nav{gap:0;overflow-x:visible;justify-content:space-between}
+  .nav-item,.nav-item:not(.active){min-width:0;flex:1 1 0;padding:7px 0;font-size:.56rem;line-height:1.15;text-align:center;letter-spacing:-.01em}
+}
+/* Açık tema: koyu sabit renkli öğeler okunmuyordu. */
+body[data-theme="light"] .streak{background:#fff}
+body[data-theme="light"] .mini-ring{background:conic-gradient(var(--green) 0%,#dce1ef 0)}
+body[data-theme="light"] .mini-ring:before{background:#fff}
+body[data-theme="light"] .brand{color:var(--text)}
+/* "Tekrar et" anahtarı: genel .modal-card input/label kuralları anahtarı 2px'e çökertiyordu. */
+.modal-card>label.switch-row{display:flex}
+.modal-card .switch-row input[type="checkbox"]{appearance:none;display:block;width:44px;height:24px;margin:0;padding:0;border:0;border-radius:99px;background:#343d5b;position:relative;cursor:pointer;flex:none}
+.modal-card .switch-row input[type="checkbox"]:checked{background:var(--primary)}
 .preview-task .preview-delete{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;opacity:1;font-size:1.3rem;line-height:1}
 .preview-task .preview-delete:hover{background:rgba(255,93,115,.12);color:#ff9aa7}
 .personal-viewer-card{display:flex;flex-direction:column;width:min(1100px,100%);height:min(92vh,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
@@ -73,6 +93,8 @@ body[data-theme="light"] .entry-repeat input{background:#f7f8fc}
 .modal-card input[type="checkbox"]{display:inline-block;width:auto;margin-top:0;padding:0;accent-color:var(--primary);flex:none}
 /* Gün kartında çalışma ekleme / silme */
 .program-day header{position:relative}
+/* Numara, başlık, (Tamamlandı rozeti), ＋ düğmesi: 4 öğe tek satırda kalsın. */
+.program-day>header{grid-template-columns:auto 1fr auto auto}
 .program-day-add{border:1px solid var(--line);background:none;color:var(--muted);border-radius:10px;width:32px;height:32px;cursor:pointer;font-size:1rem;flex:none}
 .program-day-add:hover{border-color:var(--primary);color:var(--primary-2)}
 .program-task-row{display:flex;align-items:stretch;gap:6px}

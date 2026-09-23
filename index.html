@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260923-2" />
+  <link rel="stylesheet" href="styles.css?v=20260923-3" />
 </head>
 <body>
   <div class="shell">
@@ -417,8 +417,9 @@
     <form class="modal-card entry-card" id="entryForm">
       <div class="exam-form-head"><div><p class="section-kicker">PROGRAM</p><h3 id="entryTitle">Çalışma ekle</h3></div><button type="button" class="close-btn" data-close-modal="programEntry" aria-label="Pencereyi kapat">×</button></div>
       <div class="entry-fields">
-        <label>Tarih<input id="entryDate" type="date" required></label>
-        <label>Ders<select id="entrySubject" required></select></label>
+        <label>Tarih<input id="entryDate" type="date" min="2020-01-01" max="2100-12-31" required></label>
+        <label>Ders<select id="entrySubject"></select></label>
+        <label class="entry-topic hidden" id="entryCustomLabel">Ders adı<input id="entryCustomSubject" maxlength="30" placeholder="Örn. Almanca, Rehberlik" disabled></label>
         <label class="entry-topic">Konu<input id="entryTopic" list="entryTopicList" maxlength="80" placeholder="Listeden seç ya da kendin yaz" autocomplete="off" required><datalist id="entryTopicList"></datalist></label>
         <label>Ne yapacaksın<select id="entryType">
           <option value="video">Konu videosu izle</option>
@@ -428,7 +429,7 @@
           <option value="deneme">Deneme çöz</option>
         </select></label>
         <label id="entryAmountLabel">Kaç video<input id="entryAmount" type="number" min="1" max="500" value="1"></label>
-        <label>Süre (dk) <span>(isteğe bağlı)</span><input id="entryMinutes" type="number" min="5" max="600" step="5" placeholder="Örn. 45"></label>
+        <label>Süre (dk) <span>(isteğe bağlı)</span><input id="entryMinutes" type="number" min="1" max="600" step="1" placeholder="Örn. 45"></label>
         <label class="entry-note">Kaynak / not <span>(isteğe bağlı)</span><input id="entryNote" maxlength="90" placeholder="Örn. Benim Hocam TYT Kimya · Test 3, s. 24"></label>
       </div>
       <label class="switch-row entry-repeat-toggle"><span><strong>Tekrar et</strong><small>Aynı çalışmayı belirli aralıklarla programa ekler.</small></span><input id="entryRepeat" type="checkbox" role="switch"></label>
@@ -448,9 +449,9 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260923-2"></script>
-  <script src="app.js?v=20260923-2"></script>
-  <script src="program-editor.js?v=20260923-2"></script>
-  <script type="module" src="sync.js?v=20260923-2"></script>
+  <script src="curriculum.js?v=20260923-3"></script>
+  <script src="app.js?v=20260923-3"></script>
+  <script src="program-editor.js?v=20260923-3"></script>
+  <script type="module" src="sync.js?v=20260923-3"></script>
 </body>
 </html>

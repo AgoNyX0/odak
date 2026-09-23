@@ -108,7 +108,13 @@ const taskList=$('#taskList'), taskForm=$('#taskForm'), timerSubject=$('#timerSu
 let timer={total:1500,left:1500,running:false,id:null,isFocus:true};
 
 function escapeHTML(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-function toast(message){const t=$('#toast');t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+// action: {label, run} → bildirimde bir düğme (ör. "Geri al"). Önceki bildirimin zamanlayıcısı yenisini erken kapatmasın.
+function toast(message,action){
+  const t=$('#toast');t.textContent=message;
+  if(action){const button=document.createElement('button');button.type='button';button.className='toast-action';button.textContent=action.label;button.onclick=()=>{t.classList.remove('show');action.run();};t.append(button);}
+  t.classList.toggle('has-action',Boolean(action));t.classList.add('show');
+  clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove('show'),action?6000:2200);
+}
 function formatMinutes(min){if(min<60)return `${min} dk`;const h=Math.floor(min/60),m=min%60;return m?`${h} sa ${m} dk`:`${h} sa`;}
 function dayLabel(date){return ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'][date.getDay()];}
 const SUBJECTS=[
@@ -124,7 +130,9 @@ const SUBJECTS=[
 function formatVideoDuration(seconds){const minutes=Math.round(seconds/60),hours=Math.floor(minutes/60),rest=minutes%60;return hours?(rest?`${hours} sa ${rest} dk`:`${hours} sa`):`${minutes} dk`;}
 const programDays=()=>Array.isArray(state.program?.days)?state.program.days:[];
 const programLink=subject=>state.program?.links?.[subject]||'';
-let programFilter='all',programWeek=0;
+// programWeekNeedsFocus: ilk açılışta bugünün (ya da sıradaki günün) haftasını göster.
+// programWeekTarget: program-editor bir tarih ekleyince o haftaya geç.
+let programFilter='all',programWeek=0,programWeekNeedsFocus=true,programWeekTarget=null;
 const LESSON_COLORS=SUBJECTS.map(subject=>subject.color);
 const REVIEW_INTERVALS=[1,3,7,14,30,60];
 const REASON_META={
@@ -291,28 +299,41 @@ function renderProgram(){
   $('#programDescription').textContent=hasProgram?programSummary(PROGRAM_DAYS):'';
   $('#programLegend').textContent=hasProgram?(state.program.legend||''):'';
   if(!hasProgram)return;
-  const PROGRAM_START=state.program.start||PROGRAM_DAYS[0].date;
+  // Başlangıç her zaman ilk günün tarihi (silme sonrası eski kalan program.start'a güvenme).
+  const PROGRAM_START=PROGRAM_DAYS[0].date;
+  const dayDiff=(from,to)=>Math.round((dateFromKey(to)-dateFromKey(from))/86400000);
   const itemTotal=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.length,0);
   const completed=PROGRAM_DAYS.reduce((sum,day)=>sum+day.items.filter(item=>state.programCompleted[item.id]).length,0);
   const fullDays=PROGRAM_DAYS.filter(programDayDone).length;
   const percent=Math.round(completed/(itemTotal)*100);
   const today=todayKey();
   const todayIndex=PROGRAM_DAYS.findIndex(day=>day.date===today);
-  const firstPendingIndex=PROGRAM_DAYS.findIndex(day=>!programDayDone(day));
-  const focusIndex=todayIndex>=0?todayIndex:firstPendingIndex>=0?firstPendingIndex:PROGRAM_DAYS.length-1;
+  // Odak günü: bugün programdaysa bugün, değilse bugünden sonraki ilk gün, o da yoksa son gün.
+  const upcomingIndex=PROGRAM_DAYS.findIndex(day=>day.date>=today);
+  const focusIndex=todayIndex>=0?todayIndex:upcomingIndex>=0?upcomingIndex:PROGRAM_DAYS.length-1;
   const focusDay=PROGRAM_DAYS[focusIndex];
   $('#programPercent').textContent=`%${percent}`;
   $('#programRing').style.setProperty('--program-progress',`${percent}%`);
   $('#programProgressBar').style.width=`${percent}%`;
   $('#programProgressText').textContent=`${completed} / ${itemTotal} çalışma tamamlandı`;
   $('#programDaysDone').textContent=fullDays;
-  $('#programRemaining').textContent=completed===itemTotal?`${PROGRAM_DAYS.length} günlük program tamamlandı. Harika iş!`:`${PROGRAM_DAYS.length-fullDays} tam gün kaldı · Her gün bağlantılı çalışmalar.`;
-  $('#programPhase').textContent=today<PROGRAM_START?'Program yarın başlıyor':today>PROGRAM_DAYS.at(-1).date?'Program dönemi sona erdi':`Bugün programın ${todayIndex+1}. günü`;
-  const totalWeeks=Math.ceil(PROGRAM_DAYS.length/7);
+  const lastDate=PROGRAM_DAYS.at(-1).date;
+  const remainingDays=PROGRAM_DAYS.filter(day=>day.date>=today&&!programDayDone(day)).length;
+  $('#programRemaining').textContent=completed===itemTotal?'Programdaki tüm çalışmalar tamamlandı. Harika iş!':remainingDays?`Önünde ${remainingDays} çalışma günü var.`:'Kalan çalışma günün yok; eksik kalanları tamamlayabilir ya da yeni çalışma ekleyebilirsin.';
+  const startsIn=dayDiff(today,PROGRAM_START);
+  $('#programPhase').textContent=startsIn>0?(startsIn===1?'Program yarın başlıyor':`Program ${startsIn} gün sonra başlıyor`):today>lastDate?'Program dönemi sona erdi':`Bugün programın ${dayDiff(PROGRAM_START,today)+1}. günü`;
+  // Haftalar gerçek takvim haftası (Pazartesi–Pazar); boş haftalar atlanır.
+  const weekOf=key=>weekStartKey(dateFromKey(key));
+  const weekKeys=[...new Set(PROGRAM_DAYS.map(day=>weekOf(day.date)))];
+  const totalWeeks=weekKeys.length;
+  if(programWeekTarget){const index=weekKeys.indexOf(weekOf(programWeekTarget));if(index>=0)programWeek=index;programWeekTarget=null;}
+  else if(programWeekNeedsFocus){programWeek=Math.max(0,weekKeys.indexOf(weekOf(focusDay.date)));}
+  programWeekNeedsFocus=false;
   programWeek=Math.max(0,Math.min(totalWeeks-1,programWeek));
-  const weekDays=PROGRAM_DAYS.slice(programWeek*7,programWeek*7+7);
+  const weekKey=weekKeys[programWeek];
+  const weekDays=PROGRAM_DAYS.filter(day=>weekOf(day.date)===weekKey);
   const visible=weekDays.filter(day=>programFilter==='all'||programFilter==='done'&&programDayDone(day)||programFilter==='pending'&&!programDayDone(day));
-  const weekStart=dateFromKey(weekDays[0].date),weekEnd=dateFromKey(weekDays.at(-1).date);
+  const weekStart=dateFromKey(weekKey),weekEnd=dateFromKey(addDaysKey(weekKey,6));
   const sameMonth=weekStart.getMonth()===weekEnd.getMonth();
   const weekDates=sameMonth?`${weekStart.getDate()}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})}`:`${weekStart.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}–${weekEnd.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})}`;
   $('#programWeekLabel').textContent=`${programWeek+1}. Hafta`;
@@ -328,13 +349,14 @@ function renderProgram(){
     const dayDuration=day.items.reduce((sum,item)=>sum+(item.durationSeconds||0),0);
     const dayMeta=[day.items.length?`${day.items.length} çalışma`:'',dayVideoCount?`${dayVideoCount} video`:'',dayDuration?formatVideoDuration(dayDuration):''].filter(Boolean).join(' · ');
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
-      <header><div class="day-number"><span>GÜN</span><strong>${String(day.day).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.date}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
+      <header><div class="day-number"><span>GÜN</span><strong>${String(dayDiff(PROGRAM_START,day.date)+1).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.date}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
       <div class="program-day-tasks">${day.items.map(item=>{const checked=Boolean(state.programCompleted[item.id]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',programAmountLabel(item),item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${item.id}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-remove" type="button" data-remove-item="${item.id}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
   $('#jumpProgramDay').dataset.targetDay=focusDay.day;
-  $('#jumpProgramDay').dataset.targetWeek=Math.floor((focusDay.day-1)/7);
+  $('#jumpProgramDay').dataset.targetWeek=weekKeys.indexOf(weekOf(focusDay.date));
+  $('#jumpProgramDay').textContent=todayIndex>=0?'Bugünün gününe git':'Sıradaki güne git';
 }
 
 function render(){
