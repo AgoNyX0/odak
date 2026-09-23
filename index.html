@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260923-5" />
+  <link rel="stylesheet" href="styles.css?v=20260923-8" />
 </head>
 <body>
   <div class="shell">
@@ -164,6 +164,14 @@
           <div><p class="section-kicker">AKILLI TEKRAR</p><h2>Unutmadan güçlendir</h2><p class="view-description">Kaynağı kapat, hatırladığını söyle ve tekrar zamanını ayarla.</p></div>
           <button class="primary-btn compact" id="openReviewForm" type="button">＋ Tekrar ekle</button>
         </div>
+        <article class="panel flash-panel" id="flashPanel">
+          <button class="flash-entry" id="flashOpen" type="button" aria-expanded="false" aria-controls="flashBody">
+            <span class="flash-entry-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="flash-entry-copy"><small>EZBER KARTLARI</small><strong>Kartlar</strong><span>Edebiyat, fizik, kimya ve biyoloji ezberlerini kart kart tekrar et.</span></span>
+            <span class="flash-entry-arrow" aria-hidden="true">→</span>
+          </button>
+          <div class="flash-body hidden" id="flashBody"></div>
+        </article>
         <form class="review-form panel hidden" id="reviewForm">
           <div class="exam-form-head"><div><p class="section-kicker">YENİ TEKRAR</p><h3>Hatırlamak istediğin konuyu ekle</h3></div><button type="button" class="close-btn" id="closeReviewForm" aria-label="Formu kapat">×</button></div>
           <div class="review-fields">
@@ -449,9 +457,11 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260923-5"></script>
-  <script src="app.js?v=20260923-5"></script>
-  <script src="program-editor.js?v=20260923-5"></script>
-  <script type="module" src="sync.js?v=20260923-5"></script>
+  <script src="curriculum.js?v=20260923-8"></script>
+  <script src="app.js?v=20260923-8"></script>
+  <script src="program-editor.js?v=20260923-8"></script>
+  <script src="cards.js?v=20260923-8"></script>
+  <script src="flashcards.js?v=20260923-8"></script>
+  <script type="module" src="sync.js?v=20260923-8"></script>
 </body>
 </html>
