@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-4';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-5';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -179,6 +179,8 @@ export function decide({ meta, userId, local, remote }) {
 async function sync() {
   if (!supabase || !user) return;
   if (!$('#syncConflict').classList.contains('hidden')) return; // seçim bekleniyor
+  // Çevrimdışı: ağa gitme; değişiklikler localStorage'da, 'online' olayı gelince eşitlenir.
+  if (!navigator.onLine) { setStatus('Çevrimdışısın — değişikliklerin bu cihazda duruyor, internet gelince eşitlenecek.'); return; }
   if (busy) { again = true; return; }
   busy = true;
   setStatus('Eşitleniyor…');
@@ -414,7 +416,9 @@ async function main() {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'odak-auth' },
     });
   } catch {
-    setStatus('Bulut servisine ulaşılamadı. Veriler bu tarayıcıda kaydediliyor; sayfayı yenileyince tekrar denenecek.', 'error');
+    // Kütüphane yüklenemedi (çoğunlukla internet yok ve henüz önbellekte değil): internet gelince kendiliğinden yeniden dene.
+    setStatus('Çevrimdışısın ya da bulut servisine ulaşılamadı. Değişikliklerin bu cihazda kaydediliyor; internet gelince eşitlenecek.', 'error');
+    window.addEventListener('online', () => main(), { once: true });
     return;
   }
   $('#syncForms').classList.remove('hidden');

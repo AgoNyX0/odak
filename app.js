@@ -1,4 +1,6 @@
 const STORAGE_KEY = 'odak-study-v1';
+// index.html'deki ?v= sürüm etiketi (servis çalışanı aynı sürümün dosyalarını önbelleğe alır).
+const ASSET_VERSION = (() => { try { return new URL(document.currentScript.src).searchParams.get('v') || 'dev'; } catch { return 'dev'; } })();
 const localDateKey = (date=new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 const todayKey = () => localDateKey();
 const dateFromKey = key => { const [year,month,day]=key.split('-').map(Number); return new Date(year,month-1,day,12); };
@@ -932,3 +934,12 @@ function registerStudyTools(){
   });
 }
 registerStudyTools();
+
+// Çevrimdışı açılış: servis çalışanı sayfayı ve dosyaları kaydeder (sw.js). Güvenli bağlam gerektirir (https / localhost).
+if('serviceWorker' in navigator&&window.isSecureContext){
+  navigator.serviceWorker.register(`sw.js?v=${encodeURIComponent(ASSET_VERSION)}`).catch(()=>{});
+}
+// İnternet gidip gelince kullanıcı bilsin: çevrimdışıyken yapılanlar bu cihazda durur, internet gelince eşitlenir.
+window.addEventListener('offline',()=>toast('İnternet yok — çalışmaya devam edebilirsin, değişiklikler internet gelince eşitlenecek.'));
+window.addEventListener('online',()=>toast('İnternet geldi — eşitleniyor…'));
+if(!navigator.onLine)setTimeout(()=>toast('Çevrimdışısın — kayıtlı sürüm açıldı. Değişikliklerin internet gelince eşitlenecek.'),800);
