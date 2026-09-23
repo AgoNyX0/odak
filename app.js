@@ -17,20 +17,89 @@ const seed = {
   examTarget: 90,
   settings: {theme:'dark',accent:'indigo',focus:25,shortBreak:5,longBreak:15,sound:true,reduceMotion:false}
 };
+// Veri nereden gelirse gelsin (bu tarayıcı, yedek dosyası, bulut) önce buradan geçer:
+// - Şablonlara kaçışsız giren alanlar (kimlik, tarih, saat, sayı, tür) güvenli biçime zorlanır → XSS kapanır.
+// - Yanlış türdeki alanlar düzeltilir → uygulama açılışta çökmez, bozuk veri buluta yayılmaz.
+const SAFE_ID=/^[A-Za-z0-9_-]{1,64}$/, DATE_RE=/^\d{4}-\d{2}-\d{2}$/, TIME_RE=/^\d{1,2}:\d{2}$/, ISO_RE=/^[0-9T:.+\-Z]{1,40}$/, WORD_RE=/^[A-Za-z-]{1,24}$/;
+const NUM_KEYS=new Set(['minutes','amount','videoCount','durationSeconds','correct','wrong','blank','net','count','stage','previousStage','nextStage','lapses','reviewCount','intervalDays','score','duration','day','dailyTarget','examTarget','focus','shortBreak','longBreak']);
+const NULLABLE_NUM=new Set(['score','duration']);
+const DATE_KEYS=new Set(['date','dueDate','nextDueDate','week','start','weekStart']);
+const ISO_KEYS=new Set(['createdAt','reviewedAt','lastReviewedAt','exportedAt','updatedAt']);
+const WORD_KEYS=new Set(['type','cause','outcome','status','sourceType','mode','theme','accent','kind','rating']);
+const LIST_KEYS=['tasks','sessions','exams','errorEntries','reviewItems','reviewHistory','weeklyReviews'];
+const isPlain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+function sanitizeNode(value,key=''){
+  if(Array.isArray(value)){
+    if(key==='errorIds')return value.filter(id=>typeof id==='string'&&SAFE_ID.test(id));
+    return value.map(item=>sanitizeNode(item,key)).filter(item=>item!==undefined);
+  }
+  if(isPlain(value)){
+    const out={};
+    for(const [k,v] of Object.entries(value))out[k]=sanitizeNode(v,k);
+    return out;
+  }
+  if(k_isId(key))return typeof value==='string'&&SAFE_ID.test(value)?value:(key==='id'?uid():null);
+  if(NUM_KEYS.has(key)){if(value===null&&NULLABLE_NUM.has(key))return null;const n=Number(value);return Number.isFinite(n)?n:(NULLABLE_NUM.has(key)?null:0);}
+  if(DATE_KEYS.has(key))return typeof value==='string'&&DATE_RE.test(value)?value:todayKey();
+  if(key==='time')return typeof value==='string'&&TIME_RE.test(value)?value:'00:00';
+  if(ISO_KEYS.has(key))return typeof value==='string'&&ISO_RE.test(value)?value:null;
+  if(WORD_KEYS.has(key))return typeof value==='string'&&WORD_RE.test(value)?value:'';
+  return value;
+}
+function k_isId(key){return key==='id'||key==='repeatOf'||/Id$/.test(key);}
+function normalizeState(raw){
+  const data=sanitizeNode(isPlain(raw)?raw:{});
+  LIST_KEYS.forEach(k=>{data[k]=Array.isArray(data[k])?data[k].filter(isPlain):[];});
+  data.programCompleted=isPlain(data.programCompleted)?data.programCompleted:{};
+  data.mistakePacks=Array.isArray(data.mistakePacks)?data.mistakePacks.filter(isPlain):[];
+  if(isPlain(data.program)&&Array.isArray(data.program.days)){
+    data.program.days=data.program.days.filter(isPlain).map(day=>({...day,items:Array.isArray(day.items)?day.items.filter(isPlain):[]}));
+    // Oynatma listesi bağlantıları yalnızca https olabilir (javascript: vb. engellenir).
+    const links=isPlain(data.program.links)?data.program.links:{};
+    data.program.links=Object.fromEntries(Object.entries(links).filter(([,url])=>typeof url==='string'&&/^https:\/\//i.test(url)));
+  }else data.program=null;
+  const clamp=(v,min,max,fallback)=>Number.isFinite(v)&&v>=min&&v<=max?v:fallback;
+  data.dailyTarget=clamp(data.dailyTarget,15,720,120);
+  data.examTarget=clamp(data.examTarget,1,200,90);
+  const s={...seed.settings,...(isPlain(data.settings)?data.settings:{})};
+  s.focus=clamp(s.focus,5,180,25);s.shortBreak=clamp(s.shortBreak,1,30,5);s.longBreak=clamp(s.longBreak,5,60,15);
+  s.sound=Boolean(s.sound);s.reduceMotion=Boolean(s.reduceMotion);
+  if(!['dark','light'].includes(s.theme))s.theme='dark';
+  if(!['indigo','green','orange','pink'].includes(s.accent))s.accent='indigo';
+  data.settings=s;
+  data.dataVersion=2;
+  return data;
+}
 let state;
-try { state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || seed; } catch { state = seed; }
-state.tasks ||= []; state.sessions ||= []; state.exams ||= []; state.errorEntries ||= []; state.reviewItems ||= []; state.reviewHistory ||= []; state.weeklyReviews ||= []; state.programCompleted ||= {}; state.dailyTarget ||= 120; state.examTarget ||= 90;
-state.dataVersion = 2;
-state.settings = {...seed.settings,...(state.settings||{})};
+{
+  const raw=localStorage.getItem(STORAGE_KEY);
+  let parsed=null;
+  try{parsed=raw?JSON.parse(raw):null;}
+  catch{
+    // Okunamayan veriyi silme: kopyasını sakla ve bu cihazı buluta göre yeniden eşitlenecek "yeni cihaz" yap.
+    localStorage.setItem(STORAGE_KEY+'-bozuk',raw);
+    localStorage.removeItem('odak-sync-meta');
+  }
+  state=normalizeState(parsed||seed);
+}
 // Eski sürüm her yeni kullanıcıya örnek görevler ve bir örnek oturum ekliyordu; birebir eşleşenleri bir kez temizle.
 if(!state.seedSamplesCleaned){
   const SEED_TASKS=[['Trigonometri konu tekrarı','Matematik',40],['Hücre bölünmesi soru çözümü','Biyoloji',30],['Paragraf denemesi','Türkçe',25]];
-  state.tasks=state.tasks.filter(t=>t.source||!SEED_TASKS.some(([title,subject,minutes])=>t.title===title&&t.subject===subject&&t.minutes===minutes));
-  state.sessions=state.sessions.filter(s=>!(s.subject==='Türkçe'&&s.minutes===25&&s.time==='09:20'&&Object.keys(s).sort().join()==='date,id,minutes,subject,time'));
+  const isSeedTask=t=>!t.source&&SEED_TASKS.some(([title,subject,minutes])=>t.title===title&&t.subject===subject&&t.minutes===minutes);
+  // Örnek oturum her zaman örnek görevlerle birlikte eklenirdi; görevler yoksa gerçek bir oturumu silme.
+  const hadSeedTasks=state.tasks.some(isSeedTask);
+  state.tasks=state.tasks.filter(t=>!isSeedTask(t));
+  if(hadSeedTasks)state.sessions=state.sessions.filter(s=>!(s.subject==='Türkçe'&&s.minutes===25&&s.time==='09:20'&&Object.keys(s).sort().join()==='date,id,minutes,subject,time'));
   state.seedSamplesCleaned=true;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 const save = () => { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); window.odakSync?.changed(); };
+// Başka bir sekme veriyi değiştirdiyse bu sekmenin bellekteki eski kopyası onu ezmesin: yeni veriyi al.
+window.addEventListener('storage',event=>{
+  if(event.key!==STORAGE_KEY||event.newValue===null)return;
+  try{state=normalizeState(JSON.parse(event.newValue));}catch{return;}
+  render();
+});
 
 const $ = s => document.querySelector(s);
 const taskList=$('#taskList'), taskForm=$('#taskForm'), timerSubject=$('#timerSubject');
@@ -420,8 +489,10 @@ let pendingRecallSession=null;
 function openModal(id,focusSelector){const modal=$(`#${id}`);modal.classList.remove('hidden');document.body.classList.add('modal-open');setTimeout(()=>modal.querySelector(focusSelector||'input,textarea,button')?.focus(),30);}
 function closeModal(id){$(`#${id}`).classList.add('hidden');document.body.classList.remove('modal-open');}
 document.querySelectorAll('[data-close-modal]').forEach(button=>button.onclick=()=>closeModal(button.dataset.closeModal));
-document.querySelectorAll('.modal-backdrop').forEach(modal=>modal.addEventListener('click',event=>{if(event.target===modal&&modal.id!=='recallDialog')closeModal(modal.id);}));
-document.addEventListener('keydown',event=>{if(event.key==='Escape'){const open=document.querySelector('.modal-backdrop:not(.hidden)');if(open){if(open.id==='recallDialog'&&$('#recallText').value.trim()&&!confirm('Yazdıklarını kaydetmeden kapatmak ister misin?'))return;closeModal(open.id);}}});
+// Eşitleme çakışması seçim yapılmadan kapatılamaz (arka plan tıklaması ve Esc ile de).
+const MUST_CHOOSE=new Set(['recallDialog','syncConflict']);
+document.querySelectorAll('.modal-backdrop').forEach(modal=>modal.addEventListener('click',event=>{if(event.target===modal&&!MUST_CHOOSE.has(modal.id))closeModal(modal.id);}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){const open=document.querySelector('.modal-backdrop:not(.hidden)');if(open){if(open.id==='syncConflict')return;if(open.id==='recallDialog'&&$('#recallText').value.trim()&&!confirm('Yazdıklarını kaydetmeden kapatmak ister misin?'))return;closeModal(open.id);}}});
 
 $('#quickCapture').onclick=()=>openModal('quickCaptureDialog','#quickTaskTitle');
 $('#quickCaptureForm').addEventListener('submit',event=>{
@@ -502,7 +573,12 @@ $('#testSound').onclick=()=>playTone();
 [['focusSetting','focus',5,180],['shortBreakSetting','shortBreak',1,30],['longBreakSetting','longBreak',5,60]].forEach(([id,key,min,max])=>{$(`#${id}`).onchange=e=>{const value=Math.max(min,Math.min(max,Math.round(Number(e.target.value)||state.settings[key])));state.settings[key]=value;e.target.value=value;applySettings(true);};});
 $('#dailyTargetSetting').onchange=e=>{state.dailyTarget=Math.max(15,Math.min(720,Math.round(Number(e.target.value)||120)));e.target.value=state.dailyTarget;render();toast('Günlük hedef güncellendi');};
 $('#closeSettings').onclick=e=>{e.preventDefault();location.hash=previousView;};
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.dataset.view==='settings')location.hash=previousView;});
+// Esc ile Ayarlar'dan çık; ama açık bir pencere varsa ya da bir alana yazılıyorsa çıkma (önce o kapanır / yazı yarım kalmasın).
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape'||document.body.dataset.view!=='settings')return;
+  if(document.querySelector('.modal-backdrop:not(.hidden)')||e.target.closest?.('input,textarea,select'))return;
+  location.hash=previousView;
+});
 $('#exportData').onclick=()=>{const blob=new Blob([JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`calisma-yedegi-${todayKey()}.json`;a.click();URL.revokeObjectURL(url);toast('Yedek indirildi');};
 $('#importData').onclick=()=>$('#importFile').click();
 $('#importFile').onchange=async e=>{
@@ -517,11 +593,31 @@ $('#importFile').onchange=async e=>{
 };
 let pendingImport=null;
 $('#cancelImport').onclick=()=>{pendingImport=null;$('#importConfirm').classList.add('hidden');};
-$('#confirmImport').onclick=()=>{if(!pendingImport)return;localStorage.setItem(STORAGE_KEY,JSON.stringify(pendingImport));location.reload();};
+// Sıfırlama ve yedek yükleme buluta da yansır; geri dönülebilsin diye önceki verinin kopyası saklanır.
+const UNDO_KEY=STORAGE_KEY+'-geri-al';
+function keepUndoCopy(reason){try{localStorage.setItem(UNDO_KEY,JSON.stringify({reason,savedAt:new Date().toISOString(),data:state}));}catch{}renderUndo();}
+function renderUndo(){
+  let info=null;try{info=JSON.parse(localStorage.getItem(UNDO_KEY));}catch{}
+  const box=$('#undoBox');if(!box)return;
+  box.classList.toggle('hidden',!info?.data);
+  if(info?.data)$('#undoText').textContent=`Son ${info.reason} işleminden önceki verin saklı (${new Date(info.savedAt).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})}).`;
+}
+$('#undoRestore').onclick=()=>{
+  let info=null;try{info=JSON.parse(localStorage.getItem(UNDO_KEY));}catch{}
+  if(!info?.data)return;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(info.data));
+  localStorage.removeItem(UNDO_KEY);
+  location.reload();
+};
+$('#undoDismiss').onclick=()=>{localStorage.removeItem(UNDO_KEY);renderUndo();};
+renderUndo();
+$('#confirmImport').onclick=()=>{if(!pendingImport)return;keepUndoCopy('yedek yükleme');localStorage.setItem(STORAGE_KEY,JSON.stringify(normalizeState(pendingImport)));location.reload();};
 $('#showReset').onclick=()=>{$('#resetConfirm').classList.remove('hidden');$('#resetText').focus();};
 $('#cancelReset').onclick=()=>{$('#resetConfirm').classList.add('hidden');$('#resetText').value='';$('#confirmReset').disabled=true;$('#resetProgress').checked=true;$('#resetProgram').checked=true;$('#resetPacks').checked=false;};
 $('#resetText').oninput=e=>$('#confirmReset').disabled=e.target.value.trim().toLocaleUpperCase('tr-TR')!=='SIFIRLA';
 $('#confirmReset').onclick=()=>{
+  if(!$('#resetProgress').checked&&!$('#resetProgram').checked&&!$('#resetPacks').checked){toast('Silinecek bir şey seçmedin');return;}
+  keepUndoCopy('sıfırlama');
   const parts=[];
   if($('#resetProgress').checked){state.tasks=[];state.sessions=[];state.exams=[];state.errorEntries=[];state.reviewItems=[];state.reviewHistory=[];state.weeklyReviews=[];parts.push('ilerleme kayıtları');}
   if($('#resetProgram').checked){state.program=null;state.programCompleted={};parts.push('program');}

@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- İkinci savunma hattı: bir XSS açığı kalsa bile sayfa sadece kendi dosyalarını ve izinli kaynakları çalıştırır. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://uzbaokscxhyfbsylqipc.supabase.co wss://uzbaokscxhyfbsylqipc.supabase.co https://cdn.jsdelivr.net; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="theme-color" content="#11172a" />
   <meta name="description" content="Günlük çalışma planı, odak sayacı ve ilerleme takibi için kişisel ders çalışma paneli." />
   <title>Odak — Ders Çalışma Paneli</title>
@@ -10,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
-  <!-- ?v= sürüm etiketi: her yayında dört yerde birlikte artır (styles.css, app.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260922-10" />
+  <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
+  <link rel="stylesheet" href="styles.css?v=20260923-1" />
 </head>
 <body>
   <div class="shell">
@@ -323,7 +325,7 @@
               </div>
               <div class="sync-signed-in hidden" id="syncSignedIn">
                 <p><span>Giriş yapıldı:</span> <strong id="syncUser"></strong></p>
-                <div><button class="secondary-btn" id="syncNow" type="button">Şimdi eşitle</button><button class="secondary-btn" id="syncShowPassword" type="button">Şifreyi değiştir</button><button class="secondary-btn" id="syncSignOut" type="button">Çıkış yap</button></div>
+                <div><button class="secondary-btn" id="syncNow" type="button">Şimdi eşitle</button><button class="secondary-btn" id="syncShowPassword" type="button">Şifreyi değiştir</button><button class="secondary-btn" id="syncSignOut" type="button">Çıkış yap</button><button class="secondary-btn" id="syncSignOutWipe" type="button" title="Paylaşılan bilgisayarlar için">Çıkış yap ve bu cihazdan sil</button></div>
                 <form class="sync-form hidden" id="syncPasswordForm">
                   <label>Mevcut şifre<input id="syncCurrentPassword" type="password" autocomplete="current-password" required></label>
                   <label>Yeni şifre<input id="syncNewPassword" type="password" autocomplete="new-password" minlength="6" required></label>
@@ -340,12 +342,16 @@
               <button class="secondary-btn" id="importData" type="button">Yedeği yükle (.json)</button>
               <input id="importFile" type="file" accept=".json,application/json" hidden>
             </div>
+            <div class="undo-box hidden" id="undoBox">
+              <p id="undoText"></p>
+              <div><button class="secondary-btn" id="undoDismiss" type="button">Kopyayı sil</button><button class="primary-btn compact" id="undoRestore" type="button">Önceki veriyi geri yükle</button></div>
+            </div>
             <div class="import-confirm hidden" id="importConfirm">
               <h4>Yedek yüklensin mi?</h4><p id="importSummary"></p><p>Şu anki tüm kayıtların bu yedektekilerle değiştirilecek.</p>
               <div><button class="secondary-btn" id="cancelImport" type="button">Vazgeç</button><button class="primary-btn compact" id="confirmImport" type="button">Yedeği yükle</button></div>
             </div>
             <div class="danger-zone">
-              <h4>İlerlemeyi sıfırla</h4><p>Neyin silineceğini sen seçersin. Tema ve sayaç ayarların her durumda korunur.</p>
+              <h4>İlerlemeyi sıfırla</h4><p>Neyin silineceğini sen seçersin. Tema ve sayaç ayarların her durumda korunur. Bulut hesabınla giriş yaptıysan silme işlemi buluta ve diğer cihazlarına da yansır; bu cihazda geri alınabilir bir kopya saklanır.</p>
               <button class="danger-btn" id="showReset" type="button">İlerlemeyi sıfırla…</button>
               <div class="reset-confirm hidden" id="resetConfirm">
                 <div class="reset-options">
@@ -442,9 +448,9 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260922-10"></script>
-  <script src="app.js?v=20260922-10"></script>
-  <script src="program-editor.js?v=20260922-10"></script>
-  <script type="module" src="sync.js?v=20260922-10"></script>
+  <script src="curriculum.js?v=20260923-1"></script>
+  <script src="app.js?v=20260923-1"></script>
+  <script src="program-editor.js?v=20260923-1"></script>
+  <script type="module" src="sync.js?v=20260923-1"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260922-10';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260923-1';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -17,9 +17,29 @@ const writeMeta = meta => localStorage.setItem(META_KEY, JSON.stringify(meta));
 const localData = () => { try { return JSON.parse(localStorage.getItem(DATA_KEY)); } catch { return null; } };
 
 const timeLabel = date => new Date(date).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+const count = (data, key) => Array.isArray(data?.[key]) ? data[key].length : 0;
+const programSize = data => {
+  const days = Array.isArray(data?.program?.days) ? data.program.days : [];
+  return { days: days.length, items: days.reduce((sum, day) => sum + (Array.isArray(day.items) ? day.items.length : 0), 0) };
+};
+// Çakışma ekranındaki özet: program ve hata defterleri de sayılır (önceden "0 görev" diye boş görünüyordu).
 const summary = data => {
-  const n = k => Array.isArray(data?.[k]) ? data[k].length : 0;
-  return `${n('tasks')} görev, ${n('sessions')} çalışma oturumu, ${n('exams')} deneme, ${n('reviewItems')} tekrar`;
+  const program = programSize(data);
+  const parts = [
+    program.days ? `program: ${program.days} gün / ${program.items} çalışma` : 'program yok',
+    `${count(data, 'tasks')} görev`, `${count(data, 'sessions')} oturum`, `${count(data, 'exams')} deneme`,
+    `${count(data, 'reviewItems')} tekrar`,
+  ];
+  if (count(data, 'mistakePacks')) parts.push(`${count(data, 'mistakePacks')} hata defteri`);
+  return parts.join(', ');
+};
+// Cihazda korunmaya değer bir şey yoksa (yeni cihaz, boş başlangıç) buluttaki sormadan uygulanabilir.
+const isEmptyData = data => !data || (
+  ['tasks', 'sessions', 'exams', 'errorEntries', 'reviewItems', 'reviewHistory', 'weeklyReviews', 'mistakePacks'].every(key => !count(data, key))
+  && !programSize(data).days);
+// Geri alınabilsin diye bir tarafın kopyasını app.js'in "Önceki veriyi geri yükle" kutusuna bırakır.
+const keepUndo = (reason, data) => {
+  try { localStorage.setItem(DATA_KEY + '-geri-al', JSON.stringify({ reason, savedAt: new Date().toISOString(), data })); } catch {}
 };
 function setStatus(text, tone = '') {
   const el = $('#syncStatus');
@@ -125,12 +145,34 @@ async function push(expectedVersion) {
   return true;
 }
 
-function applyRemote(remote) {
+function applyRemote(remote, { keepPrevious = true } = {}) {
   const current = localStorage.getItem(DATA_KEY);
-  if (current) localStorage.setItem(PREVIOUS_KEY, current);
+  if (keepPrevious && current) localStorage.setItem(PREVIOUS_KEY, current);
   localStorage.setItem(DATA_KEY, JSON.stringify(remote.data));
-  writeMeta({ ...readMeta(), userId: user.id, version: remote.version, adoptBase: true });
+  writeMeta({ userId: user.id, version: remote.version, adoptBase: true });
   location.reload();
+}
+
+// Sürüm güncellemesinin yaptığı normalleştirme (ör. alan düzeltme) tek başına "değişiklik" sayılmasın.
+function differsOnlyByNormalization(localStable, base) {
+  if (!base || typeof window.normalizeState !== 'function') return false;
+  try { return stable(window.normalizeState(JSON.parse(base))) === localStable; } catch { return false; }
+}
+
+// Eşitleme kararı (saf fonksiyon; ağ ve depolama yok, test edilebilir).
+// meta: bu tarayıcının son eşitleme bilgisi (userId = verinin sahibi), local/remote: veriler.
+export function decide({ meta, userId, local, remote }) {
+  // Bu tarayıcıdaki veri başka bir hesaba aitse (o kişi çıkış yaptı, sen girdin) ASLA bu hesaba gönderilmez.
+  if (meta.userId && meta.userId !== userId) return 'wipe-foreign';
+  const own = meta.userId === userId ? meta : { version: 0, base: null };
+  const localStable = local ? stable(local) : null;
+  const dirty = localStable !== null && localStable !== own.base && !differsOnlyByNormalization(localStable, own.base);
+  if (!remote) return local ? 'insert' : 'none';
+  if (remote.version === own.version) return dirty ? 'update' : 'none';
+  if (localStable === stable(remote.data)) return 'adopt';
+  // Bu cihazda yeni bir şey yok ya da cihaz yeni ve boş: buluttakini sormadan al.
+  if ((!dirty && own.version > 0) || (own.version === 0 && isEmptyData(local))) return 'apply';
+  return 'conflict';
 }
 
 async function sync() {
@@ -140,26 +182,26 @@ async function sync() {
   busy = true;
   setStatus('Eşitleniyor…');
   try {
-    let meta = readMeta();
-    if (meta.userId !== user.id) { meta = { userId: user.id, version: 0, base: null }; writeMeta(meta); }
+    const meta = readMeta();
+    if (meta.userId !== user.id) writeMeta({ userId: user.id, version: 0, base: null });
     const remote = await fetchRemote();
     const local = localData();
-    const localStable = local ? stable(local) : null;
-    const dirty = localStable !== null && localStable !== meta.base;
-
-    if (!remote) {
-      if (local && !(await push(null))) { again = true; return; }
-    } else if (remote.version === meta.version) {
-      if (dirty && !(await push(remote.version))) { again = true; return; }
-    } else if (localStable === stable(remote.data)) {
-      writeMeta({ ...meta, version: remote.version, base: localStable });
-    } else if (!dirty && meta.version > 0) {
-      applyRemote(remote);
-      return;
-    } else {
-      showConflict(remote, local);
+    const action = decide({ meta, userId: user.id, local, remote });
+    if (action === 'wipe-foreign') {
+      // Önceki kişinin verisi ve geri alma/yedek kopyaları bu hesaba kalmasın.
+      [PREVIOUS_KEY, DATA_KEY + '-geri-al', DATA_KEY + '-bozuk'].forEach(key => localStorage.removeItem(key));
+      if (remote) { applyRemote(remote, { keepPrevious: false }); return; }
+      // Yeni hesabın bulutta verisi yok: temiz başla (sadece görünüm ayarları kalsın).
+      localStorage.setItem(DATA_KEY, JSON.stringify({ settings: local?.settings || {} }));
+      writeMeta({ userId: user.id, version: 0, base: null });
+      location.reload();
       return;
     }
+    if (action === 'insert' && !(await push(null))) { again = true; return; }
+    if (action === 'update' && !(await push(remote.version))) { again = true; return; }
+    if (action === 'adopt') writeMeta({ userId: user.id, version: remote.version, base: stable(local) });
+    if (action === 'apply') { applyRemote(remote); return; }
+    if (action === 'conflict') { showConflict(remote, local); return; }
     setStatus(`Eşitlendi · ${timeLabel(Date.now())}`, 'ok');
   } catch (error) {
     setStatus(`Eşitlenemedi: ${errorText(error)} Değişikliklerin bu cihazda duruyor, sonra tekrar denenecek.`, 'error');
@@ -174,9 +216,15 @@ function showConflict(remote, local) {
   $('#conflictLocal').textContent = summary(local);
   $('#syncConflict').classList.remove('hidden');
   setStatus('Hangi verinin kullanılacağını seçmen bekleniyor.', 'error');
-  $('#keepRemote').onclick = () => { $('#syncConflict').classList.add('hidden'); applyRemote(remote); };
+  // Hangisi seçilirse seçilsin, bırakılan tarafın kopyası "Önceki veriyi geri yükle" ile geri alınabilir.
+  $('#keepRemote').onclick = () => {
+    $('#syncConflict').classList.add('hidden');
+    if (local) keepUndo('"Buluttakini kullan" seçimi', local);
+    applyRemote(remote);
+  };
   $('#keepLocal').onclick = async () => {
     $('#syncConflict').classList.add('hidden');
+    keepUndo('"Bu cihazdakini kullan" seçimi', remote.data);
     setStatus('Eşitleniyor…');
     try {
       if (!(await push(remote.version))) { schedule(300); return; }
@@ -333,6 +381,14 @@ function bindAuthForm() {
     // Varsayılan 'global' kapsam tüm cihazlardan çıkarır; sadece bu cihazdan çık.
     await supabase.auth.signOut({ scope: 'local' });
     setStatus('Bu cihazda çıkış yapıldı. Veriler bu tarayıcıda kalmaya devam ediyor.');
+  };
+  // Paylaşılan bilgisayar için: çıkış yap ve bu tarayıcıdaki kopyaları sil (bulut etkilenmez).
+  $('#syncSignOutWipe').onclick = async () => {
+    if (!confirm('Bu tarayıcıdaki tüm çalışma verilerin silinecek. Buluttaki verilerin korunur; tekrar giriş yapınca geri gelir. Devam edilsin mi?')) return;
+    clearTimeout(timer);
+    await supabase.auth.signOut({ scope: 'local' });
+    [DATA_KEY, META_KEY, PREVIOUS_KEY, DATA_KEY + '-geri-al', DATA_KEY + '-bozuk'].forEach(key => localStorage.removeItem(key));
+    location.reload();
   };
 }
 

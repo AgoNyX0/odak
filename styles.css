@@ -31,6 +31,9 @@ body[data-view="settings"] .settings-view{display:block;animation:viewIn .3s eas
 @media(max-width:520px){.data-actions{grid-template-columns:1fr}}
 .import-confirm{grid-column:1/-1;margin-top:14px;border:1px solid color-mix(in srgb,var(--primary) 40%,transparent);background:color-mix(in srgb,var(--primary) 7%,transparent);border-radius:14px;padding:16px}
 .import-confirm h4{margin:0}
+.undo-box{grid-column:1/-1;margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.undo-box p{margin:0 0 10px;color:var(--muted);font-size:.8rem;line-height:1.45}
+.undo-box>div{display:flex;gap:9px;flex-wrap:wrap}
 .import-confirm p{color:var(--muted);font-size:.8rem;margin:6px 0}
 .import-confirm>div{display:flex;gap:9px;margin-top:10px}
 .settings-card.sync-card,.settings-card.account-card{grid-column:1/-1}
