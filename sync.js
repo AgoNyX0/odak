@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260925-1';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20260925-2';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -68,6 +68,34 @@ let timer = null;
     delete meta.adoptBase;
     writeMeta(meta);
   }
+}
+
+// "Beni hatırla" işaretlenmeden giriş yapıldıysa oturum yalnızca bu tarayıcı oturumu boyunca sürer:
+// girişte süresiz (oturum) bir çerez bırakılır; tarayıcı kapanıp açılınca çerez gitmiştir → oturum kapatılır.
+// Buluta gönderilmiş yerel kopya da silinir (paylaşılan bilgisayar); gönderilmemiş değişiklik varsa kaybolmasın diye kalır.
+const REMEMBER_KEY = 'odak-remember';
+const LIVE_COOKIE = 'odak-canli';
+const FORGOT_NOTE = 'odak-oturum-kapandi';
+const markBrowserSession = () => { document.cookie = `${LIVE_COOKIE}=1; path=/; SameSite=Lax`; };
+const browserSessionAlive = () => document.cookie.split('; ').includes(`${LIVE_COOKIE}=1`);
+{
+  if (localStorage.getItem(REMEMBER_KEY) === '0' && !browserSessionAlive()) {
+    Object.keys(localStorage).filter(key => key.startsWith('odak-auth')).forEach(key => localStorage.removeItem(key));
+    localStorage.removeItem(REMEMBER_KEY);
+    const meta = readMeta(), data = localData(), localStable = data ? stable(data) : null;
+    const clean = !data || (meta.base && (localStable === meta.base || differsOnlyByNormalization(localStable, meta.base)));
+    try { sessionStorage.setItem(FORGOT_NOTE, clean ? 'silindi' : 'kaldi'); } catch {}
+    if (clean && data) {
+      [DATA_KEY, META_KEY, PREVIOUS_KEY, DATA_KEY + '-geri-al', DATA_KEY + '-bozuk'].forEach(key => localStorage.removeItem(key));
+      location.reload(); // app.js veriyi çoktan belleğe aldı; boş hâliyle yeniden başlasın
+    }
+  }
+}
+function showForgotNote() {
+  let note = null;
+  try { note = sessionStorage.getItem(FORGOT_NOTE); sessionStorage.removeItem(FORGOT_NOTE); } catch {}
+  if (note === 'silindi') setStatus('"Beni hatırla" seçilmediği için oturumun kapatıldı ve bu tarayıcıdaki kopya silindi. Verilerin bulutta; giriş yapınca geri gelir.');
+  else if (note === 'kaldi') setStatus('"Beni hatırla" seçilmediği için oturumun kapatıldı. Buluta gönderilmemiş değişikliklerin bu tarayıcıda duruyor; giriş yapınca eşitlenecek.', 'error');
 }
 
 function schedule(delay = 1500) {
@@ -269,6 +297,9 @@ function bindAuthForm() {
   const credentials = () => ({ email: $('#syncEmail').value.trim(), password: $('#syncPassword').value });
   const run = async (label, action) => {
     if (!form.reportValidity()) return;
+    const remember = $('#syncRemember').checked;
+    localStorage.setItem(REMEMBER_KEY, remember ? '1' : '0');
+    if (!remember) markBrowserSession();
     buttons.forEach(b => b.disabled = true);
     setStatus(label);
     try { await action(credentials()); } finally { buttons.forEach(b => b.disabled = false); }
@@ -424,6 +455,7 @@ async function main() {
   $('#syncForms').classList.remove('hidden');
   bindAuthForm();
   renderAuth();
+  showForgotNote();
   supabase.auth.onAuthStateChange((_event, session) => {
     const next = session?.user || null;
     if (next?.id === user?.id) return;

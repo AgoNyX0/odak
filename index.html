@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260925-1" />
+  <link rel="stylesheet" href="styles.css?v=20260925-2" />
 </head>
 <body>
   <div class="shell">
@@ -328,6 +328,7 @@
                 <form class="sync-form" id="syncAuthForm">
                   <label>E-posta<input id="syncEmail" type="email" autocomplete="email" placeholder="ornek@gmail.com" required></label>
                   <label>Şifre<input id="syncPassword" type="password" autocomplete="current-password" minlength="6" placeholder="En az 6 karakter" required></label>
+                  <label class="remember-me" title="İşaretli değilse tarayıcı kapanınca oturumun kapanır ve bu tarayıcıdaki kopya silinir (ortak bilgisayar için)."><input id="syncRemember" type="checkbox" checked><span>Beni hatırla</span><small>Ortak bilgisayardaysan işareti kaldır.</small></label>
                   <div class="sync-auth-actions"><button class="primary-btn compact" id="syncSignIn" type="submit">Giriş yap</button><button class="secondary-btn" id="syncSignUp" type="button">Hesap oluştur</button></div>
                 </form>
               </div>
@@ -457,11 +458,11 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260925-1"></script>
-  <script src="app.js?v=20260925-1"></script>
-  <script src="program-editor.js?v=20260925-1"></script>
-  <script src="cards.js?v=20260925-1"></script>
-  <script src="flashcards.js?v=20260925-1"></script>
-  <script type="module" src="sync.js?v=20260925-1"></script>
+  <script src="curriculum.js?v=20260925-2"></script>
+  <script src="app.js?v=20260925-2"></script>
+  <script src="program-editor.js?v=20260925-2"></script>
+  <script src="cards.js?v=20260925-2"></script>
+  <script src="flashcards.js?v=20260925-2"></script>
+  <script type="module" src="sync.js?v=20260925-2"></script>
 </body>
 </html>
