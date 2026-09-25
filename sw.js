@@ -34,7 +34,8 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     // Önce ağ (güncel sürüm); 5 sn'de yanıt yoksa ya da internet yoksa kayıtlı sayfa.
-    event.respondWith(withTimeout(fetch(request), 5000)
+    // cache: 'no-cache' → tarayıcının HTTP önbelleği (GitHub Pages max-age=600) eski sayfayı vermesin, sunucuya sorulsun.
+    event.respondWith(withTimeout(fetch(request.url, { cache: 'no-cache', credentials: 'same-origin' }), 5000)
       .then(response => {
         if (response.ok) { const copy = response.clone(); caches.open(CACHE).then(cache => cache.put('./', copy)); }
         return response;
