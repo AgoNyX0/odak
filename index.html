@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260925-2" />
+  <link rel="stylesheet" href="styles.css?v=20260925-4" />
 </head>
 <body>
   <div class="shell">
@@ -46,7 +46,7 @@
         <div class="topbar-actions">
           <a class="mobile-settings-btn" href="#settings" data-view-link="settings" aria-label="Ayarları aç" title="Ayarlar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
           <button class="quick-add-btn" id="quickCapture" type="button" aria-label="Hızlı görev ekle">＋ <span>Hızlı ekle</span></button>
-          <div class="streak"><span aria-hidden="true">🔥</span><div><strong id="streakValue">0 gün</strong><small>çalışma serisi</small></div></div>
+          <a class="streak" href="#streak" data-view-link="streak" aria-label="Çalışma serisi ekranını aç" title="Çalışma serisi"><span class="streak-flame" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5c.7 3.3 5.6 5.7 5.6 11.1a5.6 5.6 0 0 1-11.2 0c0-2.5 1.1-4.2 2.5-5.4.2 2 1 3.1 2.2 3.5-.4-3.5.3-6.5.9-9.2Z"/></svg></span><div><strong id="streakValue">0 gün</strong><small>çalışma serisi</small></div></a>
         </div>
       </header>
 
@@ -296,6 +296,10 @@
         </div>
       </section>
 
+      <section class="streak-view view-section" id="streak" data-section="streak">
+        <div class="streak-view-inner" id="streakView"></div>
+      </section>
+
       <section class="settings-view view-section" id="settings" data-section="settings">
         <div class="view-toolbar">
           <div><p class="section-kicker">KİŞİSELLEŞTİR</p><h2>Ayarlar</h2><p class="view-description">Çalışma alanını kendi ritmine göre düzenle.</p></div>
@@ -458,11 +462,12 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260925-2"></script>
-  <script src="app.js?v=20260925-2"></script>
-  <script src="program-editor.js?v=20260925-2"></script>
-  <script src="cards.js?v=20260925-2"></script>
-  <script src="flashcards.js?v=20260925-2"></script>
-  <script type="module" src="sync.js?v=20260925-2"></script>
+  <script src="curriculum.js?v=20260925-4"></script>
+  <script src="app.js?v=20260925-4"></script>
+  <script src="program-editor.js?v=20260925-4"></script>
+  <script src="cards.js?v=20260925-4"></script>
+  <script src="flashcards.js?v=20260925-4"></script>
+  <script src="streak.js?v=20260925-4"></script>
+  <script type="module" src="sync.js?v=20260925-4"></script>
 </body>
 </html>

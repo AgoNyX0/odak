@@ -426,7 +426,8 @@ function render(){
   save();
 }
 
-function renderStreak(){
+// Seri günleri: sayaç oturumu, biten görev, deneme, tekrar ya da program işareti olan günler (seri ekranı da bunu kullanır).
+function activeDays(){
   const today=todayKey(),active=new Set();
   state.sessions.forEach(session=>{if(session.date)active.add(session.date);});
   // Seri, işin YAPILDIĞI güne göre sayılır (geçmiş bir görevi bugün işaretlemek seriyi geriye dönük uzatmasın).
@@ -434,9 +435,17 @@ function renderStreak(){
   state.exams.forEach(exam=>{if(exam.date&&exam.date<=today)active.add(exam.date);});
   state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
   programDays().forEach(day=>day.items.forEach(item=>{const mark=state.programCompleted[item.id];if(!mark)return;const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date;if(doneDay<=today)active.add(doneDay);}));
+  return active;
+}
+function currentStreak(active=activeDays()){
+  const today=todayKey();
   let date=active.has(today)?today:addDaysKey(today,-1),days=0;
   while(active.has(date)&&date<=today){days++;date=addDaysKey(date,-1);}
-  $('#streakValue').textContent=`${days} gün`;
+  return days;
+}
+function renderStreak(){
+  $('#streakValue').textContent=`${currentStreak()} gün`;
+  if(typeof renderStreakView==='function')renderStreakView(); // streak.js
 }
 
 // Çalışma süresi = odak sayacı oturumları + tamamlanan program çalışmaları (video: programdaki süre, test: test başına 10 dk).
@@ -582,7 +591,8 @@ const viewTitles={
   focus:'Odak Sayacı',
   progress:'İlerleme',
   exams:'Denemeler',
-  settings:'Ayarlar'
+  settings:'Ayarlar',
+  streak:'Çalışma serisi'
 };
 let previousView='today';
 function setView(view,shouldScroll=false){

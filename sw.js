@@ -6,7 +6,7 @@
    Sürüm, kayıt adresindeki ?v= etiketinden gelir (app.js kaydeder); yeni sürümde eski önbellek silinir. */
 const VERSION = new URL(self.location).searchParams.get('v') || 'dev';
 const CACHE = `odak-${VERSION}`;
-const APP_FILES = ['./', ...['styles.css', 'curriculum.js', 'app.js', 'program-editor.js', 'cards.js', 'flashcards.js', 'sync.js', 'config.js'].map(file => `${file}?v=${VERSION}`)];
+const APP_FILES = ['./', ...['styles.css', 'curriculum.js', 'app.js', 'program-editor.js', 'cards.js', 'flashcards.js', 'streak.js', 'sync.js', 'config.js'].map(file => `${file}?v=${VERSION}`)];
 // supabase-js@2.117.0 ve içe aktardığı modüller (sync.js'teki sabit sürümle aynı olmalı).
 const CDN_FILES = [
   '@supabase/supabase-js@2.117.0', '@supabase/functions-js@2.117.0', 'tslib@2.8.1', '@supabase/postgrest-js@2.117.0',
