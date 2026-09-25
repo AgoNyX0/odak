@@ -88,6 +88,48 @@
     };
   }
 
+  // Bir çalışmayı bulur: {day, item}
+  function findItem(id) {
+    const day = (state.program?.days || []).find(entry => entry.items.some(item => item.id === id));
+    return day ? { day, item: day.items.find(item => item.id === id) } : null;
+  }
+
+  // Çalışmayı gününden çıkarır; boş kalan gün programdan silinir (program nesnesi kalır).
+  function detachItem(id) {
+    const found = findItem(id);
+    if (!found) return null;
+    found.day.items = found.day.items.filter(item => item.id !== id);
+    if (!found.day.items.length) {
+      state.program.days = state.program.days.filter(entry => entry !== found.day);
+      state.program.days.forEach((entry, index) => { entry.day = index + 1; });
+    }
+    return found;
+  }
+
+  // Düzenleme: aynı kimlik korunur, böylece tamamlanma işareti (programCompleted[id]) kaybolmaz.
+  function saveEdit(date, fields) {
+    const found = findItem(editingId);
+    if (!found) { closeModal('programEntry'); return; }
+    const before = JSON.stringify(state.program);
+    const old = found.item;
+    const next = { ...old, ...fields, id: old.id };
+    // Ders aynı kaldıysa eski aralık bilgisi (ör. "M49–56") korunur.
+    if (fields.subject === old.subject) next.range = old.range;
+    // Eski biçimdeki video sayısı artık adet alanında; ikisi çelişmesin.
+    delete next.videoCount;
+    detachItem(old.id);
+    addItem(date, next);
+    programWeekTarget = date;
+    render();
+    closeModal('programEntry');
+    toast('Çalışma güncellendi', { label: 'Geri al', run: () => {
+      state.program = JSON.parse(before);
+      programWeekTarget = found.day.date;
+      render();
+      toast('Değişiklik geri alındı');
+    } });
+  }
+
   function submit(keepOpen) {
     const error = $('#entryError');
     // "Ekle ve devam et" type=button olduğu için tarayıcı doğrulaması kendiliğinden çalışmıyordu (eksi süre, dev adet).
@@ -99,6 +141,7 @@
       return;
     }
     error.classList.add('hidden');
+    if (editingId) { const { id, ...fields } = item; saveEdit(date, fields); return; }
     addItem(date, item);
     let added = 1;
     if ($('#entryRepeat').checked) {
@@ -121,8 +164,43 @@
     }
   }
 
+  let editingId = null; // düzenlenen çalışmanın kimliği; null ise yeni ekleme
+
+  // Form başlığı/düğmeleri ekleme ile düzenleme arasında değişir; düzenlemede "tekrar" ve "Ekle ve devam et" yok.
+  function setMode(editing) {
+    $('#entryTitle').textContent = editing ? 'Çalışmayı düzenle' : 'Çalışma ekle';
+    $('#entrySubmit').textContent = editing ? 'Kaydet' : 'Ekle';
+    $('#entrySaveMore').classList.toggle('hidden', editing);
+    document.querySelector('.entry-repeat-toggle').classList.toggle('hidden', editing);
+  }
+
+  function openEdit(id) {
+    const found = findItem(id);
+    if (!found) return;
+    const { day, item } = found;
+    openEntry(day.date);
+    editingId = id;
+    setMode(true);
+    // Dersi listede bul (aynı grup önce); bulunamazsa "Listede yok" + kendi adı.
+    const matches = [...subjectIndex.entries()].filter(([, entry]) => (SHORT[entry.subject] || entry.subject) === item.subject);
+    const match = matches.find(([, entry]) => entry.group === item.range) || matches[0];
+    $('#entrySubject').value = match ? match[0] : '';
+    $('#entryCustomSubject').value = match ? '' : item.subject;
+    fillTopics();
+    syncCustomSubject();
+    const type = PROGRAM_TYPES[item.type] ? item.type : 'video';
+    $('#entryType').value = type;
+    syncTypeFields();
+    $('#entryTopic').value = item.topic || '';
+    $('#entryAmount').value = Number(item.amount) || Number(item.videoCount) || 1;
+    $('#entryMinutes').value = item.durationSeconds ? Math.round(item.durationSeconds / 60) : '';
+    $('#entryNote').value = item.practice || '';
+  }
+
   // Her açılışta form temiz gelir (önceki tekrar/adet/tarih farkında olmadan tekrar kullanılmasın); sadece ders korunur.
   function openEntry(date) {
+    editingId = null;
+    setMode(false);
     $('#entryError').classList.add('hidden');
     $('#entryDate').value = date || todayKey();
     $('#entryTopic').value = '';
@@ -169,26 +247,22 @@
   $('#programList').addEventListener('click', event => {
     const addDate = event.target.dataset.addItem;
     if (addDate) { openEntry(addDate); return; }
+    const editId = event.target.dataset.editItem;
+    if (editId) { event.preventDefault(); openEdit(editId); return; }
     const id = event.target.dataset.removeItem;
     if (!id) return;
     event.preventDefault();
-    const days = state.program?.days || [];
-    const day = days.find(entry => entry.items.some(item => item.id === id));
-    if (!day) return;
-    const removed = day.items.find(item => item.id === id);
-    const wasDone = Boolean(state.programCompleted[id]);
-    day.items = day.items.filter(item => item.id !== id);
+    const wasDone = state.programCompleted[id];
+    // Boş kalan gün programdan çıkar. Program nesnesi kalır (oynatma listesi bağlantıları vb. kaybolmasın).
+    const found = detachItem(id);
+    if (!found) return;
+    const { day, item: removed } = found;
     delete state.programCompleted[id];
-    // Boş kalan günü programdan çıkar. Program nesnesi kalır (oynatma listesi bağlantıları vb. kaybolmasın).
-    if (!day.items.length) {
-      state.program.days = days.filter(entry => entry !== day);
-      state.program.days.forEach((entry, index) => { entry.day = index + 1; });
-    }
     render();
     // Tek dokunuşla yanlışlıkla silmeye karşı: "Geri al".
     toast('Çalışma silindi', { label: 'Geri al', run: () => {
       addItem(day.date, removed);
-      if (wasDone) state.programCompleted[removed.id] = true;
+      if (wasDone) state.programCompleted[removed.id] = wasDone;
       programWeekTarget = day.date;
       render();
       toast('Çalışma geri alındı');

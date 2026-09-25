@@ -113,6 +113,8 @@ body[data-theme="light"] .entry-repeat input{background:#f7f8fc}
 .program-day-add:hover{border-color:var(--primary);color:var(--primary-2)}
 .program-task-row{display:flex;align-items:stretch;gap:6px}
 .program-task-row .program-task{flex:1;min-width:0}
+.program-task-edit{flex:none;border:0;background:none;color:#828dab;border-radius:9px;width:34px;cursor:pointer;font-size:1rem}
+.program-task-edit:hover{background:color-mix(in srgb,var(--primary) 14%,transparent);color:var(--primary-2)}
 .program-task-remove{flex:none;border:0;background:none;color:#828dab;border-radius:9px;width:34px;cursor:pointer;font-size:1.2rem}
 .program-task-remove:hover{background:rgba(255,93,115,.12);color:#ff9aa7}
 @media(max-width:560px){.entry-fields,.entry-repeat{grid-template-columns:1fr}}
