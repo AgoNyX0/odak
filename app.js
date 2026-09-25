@@ -407,9 +407,9 @@ function render(){
   if(subjects.includes(old))timerSubject.value=old;
 
   const sessions=state.sessions.filter(s=>s.date===todayKey());
-  const mins=sessions.reduce((a,s)=>a+s.minutes,0);
+  const focusMins=sessions.reduce((a,s)=>a+s.minutes,0),mins=studyMinutes(todayKey()).total;
   $('#todayMinutes').textContent=formatMinutes(mins); $('#focusCount').textContent=`${sessions.length} oturum`;
-  $('#focusDaySummary').textContent=`${formatMinutes(mins)} · ${sessions.length} oturum`;
+  $('#focusDaySummary').textContent=`${formatMinutes(focusMins)} · ${sessions.length} oturum`;
   const targetPct=Math.min(100,Math.round(mins/state.dailyTarget*100));
   $('#todayTarget').textContent=`${state.dailyTarget} dk hedefin var`;
   $('#targetPercent').textContent=`${targetPct}%`; $('#targetRing').style.background=`conic-gradient(var(--green) ${targetPct}%,#29314c 0)`;
@@ -439,12 +439,35 @@ function renderStreak(){
   $('#streakValue').textContent=`${days} gün`;
 }
 
+// Çalışma süresi = odak sayacı oturumları + tamamlanan program çalışmaları (video: programdaki süre, test: test başına 10 dk).
+// Aynı gün aynı ders için ikisi de varsa büyüğü sayılır: sayaç açıkken izlenip sonra tiklenen video iki kez sayılmasın.
+const TEST_MINUTES=10;
+function programItemMinutes(item){
+  const own=Math.round((Number(item.durationSeconds)||0)/60);
+  if(own)return own;
+  return item.type==='test'?(Number(item.amount)||0)*TEST_MINUTES:0;
+}
+function studyMinutes(key){
+  const bySubject=new Map();
+  const add=(subject,kind,minutes)=>{if(!minutes)return;const name=canonicalSubject(subject)||String(subject||'Diğer');const row=bySubject.get(name)||{timer:0,program:0};row[kind]+=minutes;bySubject.set(name,row);};
+  state.sessions.forEach(session=>{if(session.date===key)add(session.subject,'timer',Number(session.minutes)||0);});
+  programDays().forEach(day=>day.items.forEach(item=>{
+    const mark=state.programCompleted[item.id];if(!mark)return;
+    const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date; // işaretlendiği gün; eski işaretlerde programdaki gün
+    if(doneDay===key)add(item.subject,'program',programItemMinutes(item));
+  }));
+  let total=0,timer=0,program=0;
+  bySubject.forEach(row=>{total+=Math.max(row.timer,row.program);timer+=row.timer;program+=row.program;});
+  return {total,timer,program};
+}
+
 function renderWeek(){
   const days=[]; const now=new Date();
   const monday=new Date(now); monday.setDate(now.getDate()-((now.getDay()+6)%7));
-  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const key=localDateKey(d);/* UTC değil yerel tarih: gece 00-03 arası bir gün kayıyordu */const min=state.sessions.filter(s=>s.date===key).reduce((a,s)=>a+s.minutes,0);days.push({label:dayLabel(d),min,today:key===todayKey()});}
+  for(let i=0;i<7;i++){const d=new Date(monday);d.setDate(monday.getDate()+i);const key=localDateKey(d);/* UTC değil yerel tarih: gece 00-03 arası bir gün kayıyordu */const study=studyMinutes(key);days.push({label:dayLabel(d),min:study.total,study,today:key===todayKey()});}
   const max=Math.max(120,...days.map(d=>d.min));
-  $('#weekChart').innerHTML=days.map(d=>`<div class="bar-col ${d.today?'today':''}" title="${d.min} dakika"><div class="bar-track"><i class="bar-fill" style="height:${Math.max(3,d.min/max*100)}%"></i></div><span>${d.label}</span></div>`).join('');
+  const tip=d=>d.min?`${formatMinutes(d.min)} · program ${formatMinutes(d.study.program)}, odak sayacı ${formatMinutes(d.study.timer)}`:'Çalışma yok';
+  $('#weekChart').innerHTML=days.map(d=>`<div class="bar-col ${d.today?'today':''}" title="${tip(d)}"><div class="bar-track"><i class="bar-fill" style="height:${Math.max(3,d.min/max*100)}%"></i></div><span>${d.label}</span></div>`).join('');
   const total=days.reduce((a,d)=>a+d.min,0); $('#weekTotal').textContent=formatMinutes(total);
 }
 
@@ -851,8 +874,9 @@ function renderExamChart(exams){
 }
 
 function getWeekMetrics(){
-  const start=weekStartKey(),end=addDaysKey(start,6),tasks=state.tasks.filter(task=>task.date>=start&&task.date<=end),sessions=state.sessions.filter(session=>session.date>=start&&session.date<=end),exams=state.exams.filter(exam=>exam.date>=start&&exam.date<=end).sort((a,b)=>a.date.localeCompare(b.date));
-  return {studiedMinutes:sessions.reduce((sum,session)=>sum+session.minutes,0),completedTasks:tasks.filter(task=>task.done).length,plannedTasks:tasks.length,examsCompleted:exams.length,netDelta:exams.length>1?Number((exams.at(-1).net-exams[0].net).toFixed(2)):0};
+  const start=weekStartKey(),end=addDaysKey(start,6),tasks=state.tasks.filter(task=>task.date>=start&&task.date<=end),exams=state.exams.filter(exam=>exam.date>=start&&exam.date<=end).sort((a,b)=>a.date.localeCompare(b.date));
+  const studiedMinutes=Array.from({length:7},(_,index)=>studyMinutes(addDaysKey(start,index)).total).reduce((sum,minutes)=>sum+minutes,0);
+  return {studiedMinutes,completedTasks:tasks.filter(task=>task.done).length,plannedTasks:tasks.length,examsCompleted:exams.length,netDelta:exams.length>1?Number((exams.at(-1).net-exams[0].net).toFixed(2)):0};
 }
 $('#weeklyReviewForm').addEventListener('submit',event=>{
   event.preventDefault();const key=weekStartKey(),now=new Date().toISOString(),data={weekStart:key,win:$('#weeklyWin').value.trim(),block:$('#weeklyBlock').value.trim(),change:$('#weeklyChange').value.trim(),metrics:getWeekMetrics()};
@@ -895,7 +919,7 @@ function registerStudyTools(){
     description:'Bugünün hedef, çalışma süresi ve tamamlanan odak oturumu özetini getirir.',
     inputSchema:{type:'object',properties:{},additionalProperties:false},
     annotations:{readOnlyHint:true,untrustedContentHint:false},
-    execute(){const tasks=state.tasks.filter(t=>t.date===todayKey());const sessions=state.sessions.filter(s=>s.date===todayKey());return{date:todayKey(),plannedTasks:tasks.length,completedTasks:tasks.filter(t=>t.done).length,plannedMinutes:tasks.reduce((sum,t)=>sum+t.minutes,0),dailyCapacity:state.dailyTarget,studiedMinutes:sessions.reduce((a,s)=>a+s.minutes,0),focusSessions:sessions.length,dueReviews:state.reviewItems.filter(item=>item.status==='active'&&item.dueDate<=todayKey()).length};}
+    execute(){const tasks=state.tasks.filter(t=>t.date===todayKey());const sessions=state.sessions.filter(s=>s.date===todayKey());return{date:todayKey(),plannedTasks:tasks.length,completedTasks:tasks.filter(t=>t.done).length,plannedMinutes:tasks.reduce((sum,t)=>sum+t.minutes,0),dailyCapacity:state.dailyTarget,studiedMinutes:studyMinutes(todayKey()).total,focusSessions:sessions.length,dueReviews:state.reviewItems.filter(item=>item.status==='active'&&item.dueDate<=todayKey()).length};}
   });
   register({
     name:'add_study_task',title:'Çalışma hedefi ekle',
