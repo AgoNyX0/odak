@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%236c7cff'/%3E%3Cpath d='M17 18h22a8 8 0 0 1 8 8v21H25a8 8 0 0 1-8-8V18Z' fill='none' stroke='white' stroke-width='5'/%3E%3Cpath d='M27 29h13M27 38h9' stroke='white' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
   <!-- ?v= sürüm etiketi: her yayında altı yerde birlikte artır (styles.css, curriculum.js, app.js, program-editor.js, sync.js burada; config.js sync.js içinde). -->
-  <link rel="stylesheet" href="styles.css?v=20260925-7" />
+  <link rel="stylesheet" href="styles.css?v=20261006-1" />
 </head>
 <body>
   <div class="shell">
@@ -125,6 +125,7 @@
             <div class="program-overview-copy"><span id="programPhase"></span><h3 id="programProgressText"></h3><div class="program-progress-track"><i id="programProgressBar"></i></div><small id="programRemaining"></small></div>
             <div class="program-stat"><strong id="programDaysDone">0</strong><span>tam gün</span></div>
           </section>
+          <div class="subject-progress-mini hidden" id="programSubjectProgress" aria-label="Ders ilerlemesi"></div>
           <div class="program-toolbar">
             <div class="program-filters" role="group" aria-label="Program filtresi"><button class="program-filter active" data-program-filter="all" type="button">Tüm günler</button><button class="program-filter" data-program-filter="pending" type="button">Kalanlar</button><button class="program-filter" data-program-filter="done" type="button">Tamamlananlar</button></div>
             <div class="week-pager" aria-label="Hafta seçimi"><button class="week-arrow" data-program-week-dir="-1" type="button" aria-label="Önceki hafta">←</button><div><strong id="programWeekLabel"></strong><span id="programWeekDates"></span></div><button class="week-arrow" data-program-week-dir="1" type="button" aria-label="Sonraki hafta">→</button></div>
@@ -214,6 +215,14 @@
         <article class="panel weekly-panel">
           <div class="card-title-row"><div><p class="section-kicker">HAFTALIK RİTİM</p><h2>Bu haftaki ilerlemen</h2></div><div class="week-total"><strong id="weekTotal">0 sa</strong><span>toplam</span></div></div>
           <div class="chart" id="weekChart" aria-label="Haftalık çalışma grafiği"></div>
+        </article>
+      </section>
+
+      <section class="subject-progress-wrap view-section" data-section="progress">
+        <article class="panel">
+          <div class="card-title-row"><div><p class="section-kicker">DERS İLERLEMESİ</p><h2>Programdaki konuların ne kadarı bitti?</h2><p class="view-description">Konu videoları ve testler ayrı sayılır. Programına eklediğin konular üzerinden hesaplanır.</p></div></div>
+          <div class="sp-list" id="subjectProgressList"></div>
+          <div class="empty-sessions hidden" id="subjectProgressEmpty">Programına çalışma ekledikçe burada ders ders ilerlemen görünür.</div>
         </article>
       </section>
 
@@ -462,12 +471,13 @@
     </div>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="curriculum.js?v=20260925-7"></script>
-  <script src="app.js?v=20260925-7"></script>
-  <script src="program-editor.js?v=20260925-7"></script>
-  <script src="cards.js?v=20260925-7"></script>
-  <script src="flashcards.js?v=20260925-7"></script>
-  <script src="streak.js?v=20260925-7"></script>
-  <script type="module" src="sync.js?v=20260925-7"></script>
+  <script src="curriculum.js?v=20261006-1"></script>
+  <script src="app.js?v=20261006-1"></script>
+  <script src="program-editor.js?v=20261006-1"></script>
+  <script src="cards.js?v=20261006-1"></script>
+  <script src="flashcards.js?v=20261006-1"></script>
+  <script src="streak.js?v=20261006-1"></script>
+  <script src="subject-progress.js?v=20261006-1"></script>
+  <script type="module" src="sync.js?v=20261006-1"></script>
 </body>
 </html>

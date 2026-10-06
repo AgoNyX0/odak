@@ -322,4 +322,17 @@ body[data-view="streak"] .streak-view{display:block;animation:viewIn .3s ease-ou
 .streak-note{margin:12px 0 0;color:var(--muted);font-size:.74rem;line-height:1.5}
 @media(max-width:760px){.streak-hero{grid-template-columns:auto 1fr}.streak-stats{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){body .topbar .topbar-actions .streak .streak-flame svg{width:1.15rem;height:1.15rem}body[data-view="streak"] .quick-add-btn{display:none}}
+/* Ders ilerlemesi (subject-progress.js) */
+.subject-progress-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+.sp-mini{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:4px 6px;padding:10px 11px;border:1px solid var(--line);border-left:3px solid var(--sp-color);border-radius:14px;background:var(--panel)}
+.sp-mini span{font-size:.76rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sp-mini strong{font:800 .95rem Manrope,sans-serif;color:var(--sp-color)}
+.sp-mini .sp-bar{grid-column:1/-1}.sp-mini small{grid-column:1/-1;color:var(--muted);font-size:.7rem}
+.sp-bar{height:6px;border-radius:99px;background:color-mix(in srgb,var(--text) 10%,transparent);overflow:hidden}.sp-bar i{display:block;height:100%;border-radius:inherit;background:var(--sp-color);transition:width .4s}
+.subject-progress-wrap{display:none}body[data-view="progress"] .subject-progress-wrap{display:block;margin-top:20px;animation:viewIn .36s ease-out}
+.sp-list{display:grid;gap:16px;margin-top:18px}
+.sp-row{display:grid;gap:8px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--sp-color);border-radius:14px}
+.sp-row>strong{font:700 .98rem Manrope,sans-serif;color:var(--sp-color)}
+.sp-line{display:grid;grid-template-columns:44px 1fr 44px minmax(84px,auto);align-items:center;gap:10px;font-size:.8rem}
+.sp-line>span{color:var(--muted);font-weight:600}.sp-line b{text-align:right}.sp-line small{color:var(--muted);text-align:right;white-space:nowrap}
+@media(max-width:520px){.subject-progress-mini{grid-template-columns:repeat(2,minmax(0,1fr))}.sp-line{grid-template-columns:38px 1fr 38px;gap:8px}.sp-line small{grid-column:2/-1;text-align:left;margin-top:-6px}}
 @media(max-width:520px){.streak-hero{gap:14px}.streak-hero-flame{width:60px;height:60px;border-radius:18px}.streak-hero-flame svg{width:38px;height:38px}.streak-stats{gap:6px}.streak-stats div{padding:8px 9px}.streak-stats dd{font-size:.86rem}.streak-grid{gap:5px}.streak-day{min-height:0;border-radius:9px}.streak-day b{top:3px;left:5px;font-size:.62rem}}

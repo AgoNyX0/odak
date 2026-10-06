@@ -446,6 +446,7 @@ function currentStreak(active=activeDays()){
 function renderStreak(){
   $('#streakValue').textContent=`${currentStreak()} gün`;
   if(typeof renderStreakView==='function')renderStreakView(); // streak.js
+  if(typeof renderSubjectProgress==='function')renderSubjectProgress(); // subject-progress.js
 }
 
 // Çalışma süresi = odak sayacı oturumları + tamamlanan program çalışmaları (video: programdaki süre, test: test başına 10 dk).
