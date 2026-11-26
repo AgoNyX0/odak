@@ -1,6 +1,6 @@
 // Bulut eşitleme: localStorage'daki çalışma verisini Supabase'teki tek satırla eşitler.
 // app.js'ten bağımsızdır; burada bir şey ters giderse uygulama yerel kayıtla çalışmaya devam eder.
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261006-1';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261126-2';
 
 const DATA_KEY = 'odak-study-v1';
 const META_KEY = 'odak-sync-meta';          // {userId, version, base, adoptBase}
@@ -18,10 +18,17 @@ const localData = () => { try { return JSON.parse(localStorage.getItem(DATA_KEY)
 
 const timeLabel = date => new Date(date).toLocaleString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 const count = (data, key) => Array.isArray(data?.[key]) ? data[key].length : 0;
-const programSize = data => {
-  const days = Array.isArray(data?.program?.days) ? data.program.days : [];
-  return { days: days.length, items: days.reduce((sum, day) => sum + (Array.isArray(day.items) ? day.items.length : 0), 0) };
+const programList = data => {
+  if (data?.programs && typeof data.programs === 'object') return [data.programs.tyt, data.programs.ayt].filter(Boolean);
+  return data?.program ? [data.program] : [];
 };
+const programSize = data => programList(data).reduce((acc, prog) => {
+  const days = Array.isArray(prog?.days) ? prog.days : [];
+  return {
+    days: acc.days + days.length,
+    items: acc.items + days.reduce((sum, day) => sum + (Array.isArray(day.items) ? day.items.length : 0), 0),
+  };
+}, { days: 0, items: 0 });
 // Çakışma ekranındaki özet: program ve hata defterleri de sayılır (önceden "0 görev" diye boş görünüyordu).
 const summary = data => {
   const program = programSize(data);

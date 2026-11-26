@@ -53,16 +53,19 @@
     $('#entryRepeatNote').textContent = `Tekrar günleri: ${dates.slice(0, 4).join(', ')}${dates.length > 4 ? ` … (+${dates.length - 4})` : ''}`;
   }
 
-  // Çalışmayı tarihine göre doğru güne koyar; gün yoksa açar, günler tarihe göre sıralanır.
-  function addItem(date, item) {
-    state.program ||= { start: date, days: [], links: {}, kicker: 'ÇALIŞMA PROGRAMI', legend: '' };
-    state.program.days ||= [];
-    let day = state.program.days.find(entry => entry.date === date);
-    if (!day) { day = { day: 0, date, items: [] }; state.program.days.push(day); }
+  // Çalışmayı seçili programın (TYT veya AYT) tarihine göre doğru güne koyar; gün yoksa açar, günler tarihe göre sıralanır.
+  function addItem(date, item, track = activeProgramKey()) {
+    const key = track === 'ayt' ? 'ayt' : 'tyt';
+    state.programs ||= { tyt: null, ayt: null };
+    state.programs[key] ||= { start: date, days: [], links: {}, kicker: PROGRAM_TRACKS[key].defaultKicker, legend: '' };
+    const program = state.programs[key];
+    program.days ||= [];
+    let day = program.days.find(entry => entry.date === date);
+    if (!day) { day = { day: 0, date, items: [] }; program.days.push(day); }
     day.items.push(item);
-    state.program.days.sort((a, b) => a.date.localeCompare(b.date));
-    state.program.days.forEach((entry, index) => { entry.day = index + 1; });
-    state.program.start = state.program.days[0].date;
+    program.days.sort((a, b) => a.date.localeCompare(b.date));
+    program.days.forEach((entry, index) => { entry.day = index + 1; });
+    program.start = program.days[0].date;
   }
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, Math.round(Number(value) || 0)));
@@ -88,10 +91,14 @@
     };
   }
 
-  // Bir çalışmayı bulur: {day, item}
+  // Bir çalışmayı bulur: {track, program, day, item}
   function findItem(id) {
-    const day = (state.program?.days || []).find(entry => entry.items.some(item => item.id === id));
-    return day ? { day, item: day.items.find(item => item.id === id) } : null;
+    for (const track of ['tyt', 'ayt']) {
+      const program = state.programs?.[track];
+      const day = (program?.days || []).find(entry => entry.items.some(item => item.id === id));
+      if (day) return { track, program, day, item: day.items.find(item => item.id === id) };
+    }
+    return null;
   }
 
   // Çalışmayı gününden çıkarır; boş kalan gün programdan silinir (program nesnesi kalır).
@@ -100,17 +107,17 @@
     if (!found) return null;
     found.day.items = found.day.items.filter(item => item.id !== id);
     if (!found.day.items.length) {
-      state.program.days = state.program.days.filter(entry => entry !== found.day);
-      state.program.days.forEach((entry, index) => { entry.day = index + 1; });
+      found.program.days = found.program.days.filter(entry => entry !== found.day);
+      found.program.days.forEach((entry, index) => { entry.day = index + 1; });
     }
     return found;
   }
 
   // Düzenleme: aynı kimlik korunur, böylece tamamlanma işareti (programCompleted[id]) kaybolmaz.
-  function saveEdit(date, fields) {
+  function saveEdit(date, fields, nextTrack) {
     const found = findItem(editingId);
     if (!found) { closeModal('programEntry'); return; }
-    const before = JSON.stringify(state.program);
+    const before = JSON.stringify(state.programs);
     const old = found.item;
     const next = { ...old, ...fields, id: old.id };
     // Ders aynı kaldıysa eski aralık bilgisi (ör. "M49–56") korunur.
@@ -118,12 +125,14 @@
     // Eski biçimdeki video sayısı artık adet alanında; ikisi çelişmesin.
     delete next.videoCount;
     detachItem(old.id);
-    addItem(date, next);
+    addItem(date, next, nextTrack);
+    state.activeProgram = nextTrack;
     programWeekTarget = date;
     render();
     closeModal('programEntry');
     toast('Çalışma güncellendi', { label: 'Geri al', run: () => {
-      state.program = JSON.parse(before);
+      state.programs = JSON.parse(before);
+      state.activeProgram = found.track;
       programWeekTarget = found.day.date;
       render();
       toast('Değişiklik geri alındı');
@@ -134,6 +143,7 @@
     const error = $('#entryError');
     // "Ekle ve devam et" type=button olduğu için tarayıcı doğrulaması kendiliğinden çalışmıyordu (eksi süre, dev adet).
     if (!$('#entryForm').reportValidity()) return;
+    const track = $('#entryProgram').value === 'ayt' ? 'ayt' : 'tyt';
     const { date, item } = collect();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < '2020-01-01' || date > '2100-12-31' || !item.topic) {
       error.textContent = 'Geçerli bir tarih ve konu gerekli.';
@@ -141,17 +151,18 @@
       return;
     }
     error.classList.add('hidden');
-    if (editingId) { const { id, ...fields } = item; saveEdit(date, fields); return; }
-    addItem(date, item);
+    if (editingId) { const { id, ...fields } = item; saveEdit(date, fields, track); return; }
+    addItem(date, item, track);
     let added = 1;
     if ($('#entryRepeat').checked) {
       const every = clamp($('#entryRepeatEvery').value, 1, 120);
       const count = clamp($('#entryRepeatCount').value, 1, 30);
       for (let index = 1; index <= count; index++) {
-        addItem(addDaysKey(date, every * index), { ...item, id: uid(), repeatOf: item.id, practice: item.practice || 'Tekrar' });
+        addItem(addDaysKey(date, every * index), { ...item, id: uid(), repeatOf: item.id, practice: item.practice || 'Tekrar' }, track);
         added++;
       }
     }
+    state.activeProgram = track;
     programWeekTarget = date; // eklenen çalışmanın haftasını göster
     render();
     toast(added > 1 ? `${added} çalışma eklendi (tekrarlarla)` : 'Çalışma eklendi');
@@ -177,10 +188,11 @@
   function openEdit(id) {
     const found = findItem(id);
     if (!found) return;
-    const { day, item } = found;
-    openEntry(day.date);
+    const { track, day, item } = found;
+    openEntry(day.date, track);
     editingId = id;
     setMode(true);
+    $('#entryProgram').value = track;
     // Dersi listede bul (aynı grup önce); bulunamazsa "Listede yok" + kendi adı.
     const matches = [...subjectIndex.entries()].filter(([, entry]) => (SHORT[entry.subject] || entry.subject) === item.subject);
     const match = matches.find(([, entry]) => entry.group === item.range) || matches[0];
@@ -198,10 +210,12 @@
   }
 
   // Her açılışta form temiz gelir (önceki tekrar/adet/tarih farkında olmadan tekrar kullanılmasın); sadece ders korunur.
-  function openEntry(date) {
+  function openEntry(date, track = activeProgramKey()) {
+    const key = track === 'ayt' ? 'ayt' : 'tyt';
     editingId = null;
     setMode(false);
     $('#entryError').classList.add('hidden');
+    $('#entryProgram').value = key;
     $('#entryDate').value = date || todayKey();
     $('#entryTopic').value = '';
     $('#entryType').value = 'video';
@@ -212,6 +226,11 @@
     $('#entryRepeatEvery').value = 7;
     $('#entryRepeatCount').value = 3;
     if (!$('#entrySubject').options.length) fillSubjects();
+    if (key === 'ayt' && $('#entrySubject').value.startsWith('TYT|') && subjectIndex.has('AYT|Matematik')) {
+      $('#entrySubject').value = 'AYT|Matematik';
+    } else if (key === 'tyt' && $('#entrySubject').value.startsWith('AYT|') && subjectIndex.has('TYT|Türkçe')) {
+      $('#entrySubject').value = 'TYT|Türkçe';
+    }
     fillTopics();
     syncTypeFields();
     syncCustomSubject();
@@ -256,13 +275,14 @@
     // Boş kalan gün programdan çıkar. Program nesnesi kalır (oynatma listesi bağlantıları vb. kaybolmasın).
     const found = detachItem(id);
     if (!found) return;
-    const { day, item: removed } = found;
+    const { track, day, item: removed } = found;
     delete state.programCompleted[id];
     render();
     // Tek dokunuşla yanlışlıkla silmeye karşı: "Geri al".
     toast('Çalışma silindi', { label: 'Geri al', run: () => {
-      addItem(day.date, removed);
+      addItem(day.date, removed, track);
       if (wasDone) state.programCompleted[removed.id] = wasDone;
+      state.activeProgram = track;
       programWeekTarget = day.date;
       render();
       toast('Çalışma geri alındı');

@@ -16,6 +16,8 @@ const seed = {
   reviewItems: [],
   reviewHistory: [],
   weeklyReviews: [],
+  programs: {tyt:null,ayt:null},
+  activeProgram: 'tyt',
   examTarget: 90,
   settings: {theme:'dark',accent:'indigo',focus:25,shortBreak:5,longBreak:15,sound:true,reduceMotion:false}
 };
@@ -49,17 +51,29 @@ function sanitizeNode(value,key=''){
   return value;
 }
 function k_isId(key){return key==='id'||key==='repeatOf'||/Id$/.test(key);}
+function normalizeProgram(prog){
+  if(!isPlain(prog)||!Array.isArray(prog.days))return null;
+  const links=isPlain(prog.links)?prog.links:{};
+  return {
+    ...prog,
+    days:prog.days.filter(isPlain).map(day=>({...day,items:Array.isArray(day.items)?day.items.filter(isPlain):[]})),
+    // Oynatma listesi bağlantıları yalnızca https olabilir (javascript: vb. engellenir).
+    links:Object.fromEntries(Object.entries(links).filter(([,url])=>typeof url==='string'&&/^https:\/\//i.test(url)))
+  };
+}
 function normalizeState(raw){
   const data=sanitizeNode(isPlain(raw)?raw:{});
   LIST_KEYS.forEach(k=>{data[k]=Array.isArray(data[k])?data[k].filter(isPlain):[];});
   data.programCompleted=isPlain(data.programCompleted)?data.programCompleted:{};
   data.mistakePacks=Array.isArray(data.mistakePacks)?data.mistakePacks.filter(isPlain):[];
-  if(isPlain(data.program)&&Array.isArray(data.program.days)){
-    data.program.days=data.program.days.filter(isPlain).map(day=>({...day,items:Array.isArray(day.items)?day.items.filter(isPlain):[]}));
-    // Oynatma listesi bağlantıları yalnızca https olabilir (javascript: vb. engellenir).
-    const links=isPlain(data.program.links)?data.program.links:{};
-    data.program.links=Object.fromEntries(Object.entries(links).filter(([,url])=>typeof url==='string'&&/^https:\/\//i.test(url)));
-  }else data.program=null;
+  const hasPrograms=isPlain(raw?.programs);
+  const legacyProgram=normalizeProgram(data.program);
+  data.programs={
+    tyt:normalizeProgram(data.programs?.tyt)||(!hasPrograms?legacyProgram:null),
+    ayt:normalizeProgram(data.programs?.ayt)||null
+  };
+  delete data.program;
+  data.activeProgram=data.activeProgram==='ayt'?'ayt':'tyt';
   const clamp=(v,min,max,fallback)=>Number.isFinite(v)&&v>=min&&v<=max?v:fallback;
   data.dailyTarget=clamp(data.dailyTarget,15,720,120);
   data.examTarget=clamp(data.examTarget,1,200,90);
@@ -127,11 +141,18 @@ const SUBJECTS=[
   {name:'Biyoloji',color:'#58d6a6'},
   {name:'Sosyal',color:'#f08b45'}
 ];
-// Kişisel çalışma programı koda gömülü değil: her kullanıcının kendi verisinde (state.program) durur ve bulutla eşitlenir.
+// Kişisel çalışma programları (TYT ve AYT ayrı) koda gömülü değil: her kullanıcının kendi verisinde (state.programs.{tyt,ayt}) durur ve bulutla eşitlenir.
 // Biçim: {start:'YYYY-MM-DD', links:{Ders:url}, days:[{day,date,items:[{subject,range,topic,practice,videoCount,durationSeconds}]}]}
 function formatVideoDuration(seconds){const minutes=Math.round(seconds/60),hours=Math.floor(minutes/60),rest=minutes%60;return hours?(rest?`${hours} sa ${rest} dk`:`${hours} sa`):`${minutes} dk`;}
-const programDays=()=>Array.isArray(state.program?.days)?state.program.days:[];
-const programLink=subject=>state.program?.links?.[subject]||'';
+const PROGRAM_TRACKS={
+  tyt:{key:'tyt',label:'TYT Programı',short:'TYT',defaultKicker:'TYT ÇALIŞMA PROGRAMI'},
+  ayt:{key:'ayt',label:'AYT Programı',short:'AYT',defaultKicker:'AYT ÇALIŞMA PROGRAMI'}
+};
+const activeProgramKey=()=>state.activeProgram==='ayt'?'ayt':'tyt';
+const currentProgram=(key=activeProgramKey())=>state.programs?.[key]||null;
+const programDays=(key=activeProgramKey())=>Array.isArray(currentProgram(key)?.days)?currentProgram(key).days:[];
+const allProgramDays=()=>['tyt','ayt'].flatMap(key=>programDays(key));
+const programLink=(subject,key=activeProgramKey())=>currentProgram(key)?.links?.[subject]||'';
 // programWeekNeedsFocus: ilk açılışta bugünün (ya da sıradaki günün) haftasını göster.
 // programWeekTarget: program-editor bir tarih ekleyince o haftaya geç.
 let programFilter='all',programWeek=0,programWeekNeedsFocus=true,programWeekTarget=null;
@@ -273,10 +294,8 @@ function renderWeeklyReview(){
 // Tamamlanma işaretleri çalışmanın kalıcı kimliğine bağlı: araya gün/çalışma eklenince kaymaz.
 // Eski programlar "gün-sıra" anahtarı kullanıyordu; bir kez kimliklere çevriliyor.
 function ensureProgramIds(){
-  const days=state.program?.days;
-  if(!Array.isArray(days))return;
   let changed=false;
-  days.forEach(day=>day.items.forEach((item,index)=>{
+  allProgramDays().forEach(day=>day.items.forEach((item,index)=>{
     if(item.id)return;
     item.id=uid();
     const legacy=`${day.day}-${index}`;
@@ -306,14 +325,26 @@ function programSummary(days){
   return [range,videos?`${videos} video`:'',duration].filter(Boolean).join(' · ');
 }
 function renderProgram(){
-  const PROGRAM_DAYS=programDays(),hasProgram=PROGRAM_DAYS.length>0;
+  const track=activeProgramKey(),trackMeta=PROGRAM_TRACKS[track],program=currentProgram(track);
+  document.querySelectorAll('[data-program-track]').forEach(button=>{
+    const key=button.dataset.programTrack,active=key===track,days=programDays(key);
+    const total=days.reduce((sum,day)=>sum+day.items.length,0);
+    const done=days.reduce((sum,day)=>sum+day.items.filter(item=>state.programCompleted[item.id]).length,0);
+    button.classList.toggle('active',active);
+    button.setAttribute('aria-selected',String(active));
+    const metaEl=$(`#programTrackMeta-${key}`);
+    if(metaEl)metaEl.textContent=total?`${done}/${total} · %${Math.round(done/total*100)}`:'Boş';
+  });
+  const PROGRAM_DAYS=programDays(track),hasProgram=PROGRAM_DAYS.length>0;
   $('#programBody').classList.toggle('hidden',!hasProgram);
   $('#programEmptyState').classList.toggle('hidden',hasProgram);
   $('#jumpProgramDay').classList.toggle('hidden',!hasProgram);
-  $('#programKicker').textContent=hasProgram&&state.program.kicker?state.program.kicker:'ÇALIŞMA PROGRAMI';
+  $('#programEmptyTitle').textContent=`Henüz bir ${trackMeta.short} programın yok.`;
+  $('#openEntryEmpty').textContent=`İlk ${trackMeta.short} çalışmanı ekle`;
+  $('#programKicker').textContent=hasProgram&&program.kicker?program.kicker:trackMeta.defaultKicker;
   $('#programDescription').textContent=hasProgram?programSummary(PROGRAM_DAYS):'';
-  $('#programLegend').textContent=hasProgram?(state.program.legend||''):'';
-  if(!hasProgram)return;
+  $('#programLegend').textContent=hasProgram?(program.legend||''):'';
+  if(!hasProgram){if(typeof renderSubjectProgress==='function')renderSubjectProgress();return;}
   // Başlangıç her zaman ilk günün tarihi (silme sonrası eski kalan program.start'a güvenme).
   const PROGRAM_START=PROGRAM_DAYS[0].date;
   const dayDiff=(from,to)=>Math.round((dateFromKey(to)-dateFromKey(from))/86400000);
@@ -434,7 +465,7 @@ function activeDays(){
   state.tasks.forEach(task=>{if(task.done){const day=task.doneDate||task.date;if(day&&day<=today)active.add(day);}});
   state.exams.forEach(exam=>{if(exam.date&&exam.date<=today)active.add(exam.date);});
   state.reviewHistory.forEach(review=>{if(review.reviewedAt)active.add(localDateKey(new Date(review.reviewedAt)));});
-  programDays().forEach(day=>day.items.forEach(item=>{const mark=state.programCompleted[item.id];if(!mark)return;const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date;if(doneDay<=today)active.add(doneDay);}));
+  allProgramDays().forEach(day=>day.items.forEach(item=>{const mark=state.programCompleted[item.id];if(!mark)return;const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date;if(doneDay<=today)active.add(doneDay);}));
   return active;
 }
 function currentStreak(active=activeDays()){
@@ -461,7 +492,7 @@ function studyMinutes(key){
   const bySubject=new Map();
   const add=(subject,kind,minutes)=>{if(!minutes)return;const name=canonicalSubject(subject)||String(subject||'Diğer');const row=bySubject.get(name)||{timer:0,program:0};row[kind]+=minutes;bySubject.set(name,row);};
   state.sessions.forEach(session=>{if(session.date===key)add(session.subject,'timer',Number(session.minutes)||0);});
-  programDays().forEach(day=>day.items.forEach(item=>{
+  allProgramDays().forEach(day=>day.items.forEach(item=>{
     const mark=state.programCompleted[item.id];if(!mark)return;
     const doneDay=typeof mark==='string'&&DATE_RE.test(mark)?mark:day.date; // işaretlendiği gün; eski işaretlerde programdaki gün
     if(doneDay===key)add(item.subject,'program',programItemMinutes(item));
@@ -757,7 +788,7 @@ $('#confirmReset').onclick=()=>{
   keepUndoCopy('sıfırlama');
   const parts=[];
   if($('#resetProgress').checked){state.tasks=[];state.sessions=[];state.exams=[];state.errorEntries=[];state.reviewItems=[];state.reviewHistory=[];state.weeklyReviews=[];parts.push('ilerleme kayıtları');}
-  if($('#resetProgram').checked){state.program=null;state.programCompleted={};parts.push('program');}
+  if($('#resetProgram').checked){state.programs={tyt:null,ayt:null};state.programCompleted={};parts.push('program');}
   // Program kalsın ama ilerleme sıfırlansın denmişse, tamamlanma işaretleri de ilerlemedir: onlar da gider.
   else if($('#resetProgress').checked){state.programCompleted={};}
   if($('#resetPacks').checked){state.mistakePacks=[];parts.push('hata defteri kartları');}
@@ -897,6 +928,7 @@ $('#weeklyReviewForm').addEventListener('submit',event=>{
 });
 $('#lastWeeklyReview').addEventListener('click',event=>{if(event.target.id!=='editWeeklyReview')return;const review=state.weeklyReviews.find(item=>item.weekStart===weekStartKey());if(!review)return;$('#weeklyWin').value=review.win;$('#weeklyBlock').value=review.block;$('#weeklyChange').value=review.change;$('#lastWeeklyReview').classList.add('hidden');$('#weeklyReviewForm').classList.remove('hidden');$('#weeklyWin').focus();});
 $('#programList').addEventListener('change',event=>{const key=event.target.dataset.programTask;if(!key)return;state.programCompleted[key]=event.target.checked?todayKey():false;/* işaretlendiği gün (seri için) */if(!event.target.checked)delete state.programCompleted[key];render();toast(event.target.checked?'Çalışma tamamlandı!':'Çalışma yeniden açıldı');});
+document.querySelectorAll('[data-program-track]').forEach(button=>button.onclick=()=>{const next=button.dataset.programTrack==='ayt'?'ayt':'tyt';if(state.activeProgram===next)return;state.activeProgram=next;programWeekNeedsFocus=true;renderProgram();if(typeof renderSubjectProgress==='function')renderSubjectProgress();save();});
 document.querySelectorAll('[data-program-filter]').forEach(button=>button.onclick=()=>{programFilter=button.dataset.programFilter;document.querySelectorAll('[data-program-filter]').forEach(item=>item.classList.toggle('active',item===button));renderProgram();});
 document.querySelectorAll('[data-program-week-dir]').forEach(button=>button.onclick=()=>{programWeek+=Number(button.dataset.programWeekDir);renderProgram();$('#programList').scrollIntoView({behavior:'smooth',block:'start'});});
 $('#jumpProgramDay').onclick=()=>{programWeek=Number($('#jumpProgramDay').dataset.targetWeek)||0;renderProgram();const day=$('#jumpProgramDay').dataset.targetDay;document.querySelector(`#program-day-${day}`)?.scrollIntoView({behavior:'smooth',block:'center'});};
