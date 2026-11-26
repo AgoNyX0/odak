@@ -33,6 +33,9 @@
     $('#entryAmountLabel').classList.toggle('hidden', !label);
     $('#entryAmount').disabled = !label;
     if (label) $('#entryAmountLabel').firstChild.textContent = label;
+    const isVideo = type === 'video';
+    $('#entryVideosLabel').classList.toggle('hidden', !isVideo);
+    $('#entryVideos').disabled = !isVideo;
   }
 
   function syncCustomSubject() {
@@ -76,6 +79,11 @@
     const minutes = $('#entryMinutes').value === '' ? 0 : clamp($('#entryMinutes').value, 1, 600);
     const amount = UNIT_LABEL[type] ? clamp($('#entryAmount').value, 1, 500) : 0;
     const custom = $('#entryCustomSubject').value.trim();
+    const videoLines = type === 'video'
+      ? $('#entryVideos').value.split('\n').map(line => line.trim()).filter(Boolean).slice(0, 30)
+      : [];
+    const prevByTitle = new Map((editingVideos || []).map(v => [v.title, v]));
+    const videos = videoLines.map(title => prevByTitle.get(title) || { title });
     return {
       date: $('#entryDate').value,
       item: {
@@ -87,6 +95,7 @@
         amount,
         practice: $('#entryNote').value.trim(),
         durationSeconds: minutes * 60,
+        ...(videos.length ? { videos } : {}),
       },
     };
   }
@@ -124,6 +133,7 @@
     if (fields.subject === old.subject) next.range = old.range;
     // Eski biçimdeki video sayısı artık adet alanında; ikisi çelişmesin.
     delete next.videoCount;
+    if (!fields.videos) delete next.videos;
     detachItem(old.id);
     addItem(date, next, nextTrack);
     state.activeProgram = nextTrack;
@@ -169,6 +179,7 @@
     if (keepOpen) {
       $('#entryTopic').value = '';
       $('#entryNote').value = '';
+      $('#entryVideos').value = '';
       $('#entryTopic').focus();
     } else {
       closeModal('programEntry');
@@ -176,6 +187,7 @@
   }
 
   let editingId = null; // düzenlenen çalışmanın kimliği; null ise yeni ekleme
+  let editingVideos = [];
 
   // Form başlığı/düğmeleri ekleme ile düzenleme arasında değişir; düzenlemede "tekrar" ve "Ekle ve devam et" yok.
   function setMode(editing) {
@@ -207,12 +219,15 @@
     $('#entryAmount').value = Number(item.amount) || Number(item.videoCount) || 1;
     $('#entryMinutes').value = item.durationSeconds ? Math.round(item.durationSeconds / 60) : '';
     $('#entryNote').value = item.practice || '';
+    editingVideos = Array.isArray(item.videos) ? item.videos : [];
+    $('#entryVideos').value = editingVideos.map(v => v.title).join('\n');
   }
 
   // Her açılışta form temiz gelir (önceki tekrar/adet/tarih farkında olmadan tekrar kullanılmasın); sadece ders korunur.
   function openEntry(date, track = activeProgramKey()) {
     const key = track === 'ayt' ? 'ayt' : 'tyt';
     editingId = null;
+    editingVideos = [];
     setMode(false);
     $('#entryError').classList.add('hidden');
     $('#entryProgram').value = key;
@@ -222,6 +237,7 @@
     $('#entryAmount').value = 1;
     $('#entryMinutes').value = '';
     $('#entryNote').value = '';
+    $('#entryVideos').value = '';
     $('#entryRepeat').checked = false;
     $('#entryRepeatEvery').value = 7;
     $('#entryRepeatCount').value = 3;

@@ -54,9 +54,14 @@ function k_isId(key){return key==='id'||key==='repeatOf'||/Id$/.test(key);}
 function normalizeProgram(prog){
   if(!isPlain(prog)||!Array.isArray(prog.days))return null;
   const links=isPlain(prog.links)?prog.links:{};
+  const cleanVideos=list=>Array.isArray(list)?list.filter(v=>isPlain(v)&&typeof v.title==='string'&&v.title.trim()).map(v=>({
+    title:v.title.trim().slice(0,180),
+    ...(typeof v.url==='string'&&/^https:\/\//i.test(v.url)?{url:v.url}:{}),
+    ...(typeof v.length==='string'&&/^\d{1,2}(:\d{2}){1,2}$/.test(v.length.trim())?{length:v.length.trim()}:{})
+  })):undefined;
   return {
     ...prog,
-    days:prog.days.filter(isPlain).map(day=>({...day,items:Array.isArray(day.items)?day.items.filter(isPlain):[]})),
+    days:prog.days.filter(isPlain).map(day=>({...day,items:(Array.isArray(day.items)?day.items.filter(isPlain):[]).map(item=>{const videos=cleanVideos(item.videos);if(videos?.length)return {...item,videos};const copy={...item};delete copy.videos;return copy;})})),
     // Oynatma listesi bağlantıları yalnızca https olabilir (javascript: vb. engellenir).
     links:Object.fromEntries(Object.entries(links).filter(([,url])=>typeof url==='string'&&/^https:\/\//i.test(url)))
   };
@@ -309,7 +314,7 @@ function programDayDone(day){return day.items.length>0&&day.items.every(item=>st
 // Çalışma türleri: kullanıcı ne yapacağını ve kaç tane olduğunu kendisi giriyor.
 const PROGRAM_TYPES={video:{label:'Konu videosu',unit:'video'},test:{label:'Test çöz',unit:'test'},soru:{label:'Soru çöz',unit:'soru'},tekrar:{label:'Konu tekrarı',unit:''},deneme:{label:'Deneme',unit:'deneme'}};
 // Eski biçim videoCount, yeni biçim type:'video' + amount.
-const itemVideoCount=item=>Number(item.videoCount)||(item.type==='video'?Number(item.amount)||0:0);
+const itemVideoCount=item=>Number(item.videoCount)||(item.type==='video'?(Number(item.amount)||item.videos?.length||0):0);
 function programAmountLabel(item){
   if(item.amount&&PROGRAM_TYPES[item.type]?.unit)return `${item.amount} ${PROGRAM_TYPES[item.type].unit}`;
   if(item.videoCount)return `${item.videoCount} video`;
@@ -399,7 +404,7 @@ function renderProgram(){
     const dayMeta=[day.items.length?`${day.items.length} çalışma`:'',dayVideoCount?`${dayVideoCount} video`:'',dayDuration?formatVideoDuration(dayDuration):''].filter(Boolean).join(' · ');
     return `<article class="program-day ${done?'is-done':''} ${isToday?'is-today':''} ${isNext?'is-next':''}" id="program-day-${day.day}">
       <header><div class="day-number"><span>GÜN</span><strong>${String(dayDiff(PROGRAM_START,day.date)+1).padStart(2,'0')}</strong></div><div><h3>${dateText}</h3><p>${dayMeta||'Çalışma yok'}</p></div>${done&&day.items.length?'<span class="day-done-badge">Tamamlandı</span>':''}<button class="program-day-add" type="button" data-add-item="${day.date}" title="Bu güne çalışma ekle" aria-label="${dateText} gününe çalışma ekle">＋</button></header>
-      <div class="program-day-tasks">${day.items.map(item=>{const checked=Boolean(state.programCompleted[item.id]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',programAmountLabel(item),item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${item.id}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-edit" type="button" data-edit-item="${item.id}" title="Çalışmayı düzenle" aria-label="${escapeHTML(item.topic)} çalışmasını düzenle">✎</button><button class="program-task-remove" type="button" data-remove-item="${item.id}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
+      <div class="program-day-tasks">${day.items.map(item=>{const checked=Boolean(state.programCompleted[item.id]),meta=subjectMeta(item.subject);const info=[escapeHTML(item.subject),item.range?escapeHTML(item.range):'',programAmountLabel(item),item.durationSeconds?formatVideoDuration(item.durationSeconds):''].filter(Boolean).join(' · ');const videosHtml=Array.isArray(item.videos)&&item.videos.length?`<div class="program-videos">${item.videos.map(v=>v.url?`<a class="program-video-link" href="${escapeHTML(v.url)}" target="_blank" rel="noopener"><span>▶ ${escapeHTML(v.title)}</span>${v.length?`<small>${escapeHTML(v.length)}</small>`:''}</a>`:`<span class="program-video-item"><span>▶ ${escapeHTML(v.title)}</span>${v.length?`<small>${escapeHTML(v.length)}</small>`:''}</span>`).join('')}</div>`:'';return `<div class="program-task-row"><label class="program-task ${checked?'done':''}" style="--program-subject:${meta.color}"><input type="checkbox" data-program-task="${item.id}" ${checked?'checked':''}><span class="program-check" aria-hidden="true"></span><span class="program-task-copy"><small>${info}</small><strong>${escapeHTML(item.topic)}</strong>${videosHtml}${item.practice?`<em>${escapeHTML(item.practice)}</em>`:''}</span>${programLink(item.subject)?`<a href="${escapeHTML(programLink(item.subject))}" target="_blank" rel="noopener" aria-label="${escapeHTML(item.subject)} oynatma listesini aç" title="Oynatma listesini aç">↗</a>`:''}</label><button class="program-task-edit" type="button" data-edit-item="${item.id}" title="Çalışmayı düzenle" aria-label="${escapeHTML(item.topic)} çalışmasını düzenle">✎</button><button class="program-task-remove" type="button" data-remove-item="${item.id}" title="Çalışmayı sil" aria-label="${escapeHTML(item.topic)} çalışmasını sil">×</button></div>`;}).join('')}</div>
     </article>`;
   }).join('');
   $('#emptyProgram').classList.toggle('hidden',visible.length>0);
