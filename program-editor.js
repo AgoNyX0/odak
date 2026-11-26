@@ -83,7 +83,15 @@
       ? $('#entryVideos').value.split('\n').map(line => line.trim()).filter(Boolean).slice(0, 30)
       : [];
     const prevByTitle = new Map((editingVideos || []).map(v => [v.title, v]));
-    const videos = videoLines.map(title => prevByTitle.get(title) || { title });
+    const videos = videoLines.map(line => {
+      const parts = line.split('||').map(s => s.trim());
+      const title = parts[0];
+      if (!title) return null;
+      if (parts.length === 1) return prevByTitle.get(title) || { title };
+      const length = /^\d{1,2}(:\d{2}){1,2}$/.test(parts[1] || '') ? parts[1] : undefined;
+      const url = /^https:\/\//i.test(parts[2] || '') ? parts[2] : undefined;
+      return { title, ...(length ? { length } : {}), ...(url ? { url } : {}) };
+    }).filter(Boolean);
     return {
       date: $('#entryDate').value,
       item: {
